@@ -33,7 +33,7 @@ if _MYSQL_URL and "mysql" in _MYSQL_URL:
         "password": _p.password or "",
         "database": (_p.path or "/sp500").lstrip("/"),
     }
-    print(f"[db] Using MYSQL_URL → {DB['host']}:{DB['port']}/{DB['database']}")
+    print(f"[db] Using MYSQL_URL ->{DB['host']}:{DB['port']}/{DB['database']}")
 else:
     # Fall back to individual env vars (local .env or manually set Railway vars)
     DB = {
@@ -43,7 +43,7 @@ else:
         "password": _env("DB_PASSWORD", "MYSQLPASSWORD", default=""),
         "database": _env("DB_NAME", "MYSQLDATABASE", default="sp500"),
     }
-    print(f"[db] Using individual vars → {DB['host']}:{DB['port']}/{DB['database']}")
+    print(f"[db] Using individual vars ->{DB['host']}:{DB['port']}/{DB['database']}")
 
 _engine = None
 
@@ -127,7 +127,7 @@ def migrate_guru_tables():
     """Migrate existing single-filing tables to multi-filing schema (idempotent)."""
     engine = get_engine()
     with engine.connect() as conn:
-        # Migrate guru_filing_meta: single-column PK(slug) → composite PK(slug, filing_date)
+        # Migrate guru_filing_meta: single-column PK(slug) ->composite PK(slug, filing_date)
         try:
             pk_cols = [r[0] for r in conn.execute(text("""
                 SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
@@ -140,7 +140,7 @@ def migrate_guru_tables():
                     "DROP PRIMARY KEY, ADD PRIMARY KEY (slug, filing_date)"
                 ))
                 conn.commit()
-                print("Migrated guru_filing_meta → composite PK (slug, filing_date)")
+                print("Migrated guru_filing_meta ->composite PK (slug, filing_date)")
         except Exception as e:
             print(f"guru_filing_meta migration skipped: {e}")
 

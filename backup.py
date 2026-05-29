@@ -12,6 +12,7 @@ from sqlalchemy import text
 
 # Tables that are irreplaceable (cannot be re-fetched from external APIs)
 BACKUP_TABLES = [
+    "sp500_info",         # 503 rows — needed to bootstrap app on fresh DB
     "guru_rules",
     "screener_saved_filters",
     "vol_trades",

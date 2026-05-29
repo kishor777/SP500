@@ -31,35 +31,45 @@ from config import (
 
 app = Flask(__name__)
 
-# ── info — load from MySQL, fall back to CSV if DB unavailable ────────────────
+# ── info — load from MySQL ────────────────────────────────────────────────────
 def _load_info() -> pd.DataFrame:
-    engine = get_engine()
-    frame = pd.read_sql("SELECT * FROM sp500_info", engine)
-    if "ticker" not in frame.columns:
-        raise ValueError("sp500_info: ticker column missing")
-    frame = frame.set_index("ticker")
-    frame.index.name = "ticker"
-    print(f"Loaded {len(frame)} tickers from MySQL")
-    return frame
+    try:
+        engine = get_engine()
+        frame = pd.read_sql("SELECT * FROM sp500_info", engine)
+        if "ticker" not in frame.columns:
+            print("Warning: sp500_info has no ticker column — starting empty")
+            return pd.DataFrame()
+        frame = frame.set_index("ticker")
+        frame.index.name = "ticker"
+        print(f"Loaded {len(frame)} tickers from MySQL")
+        return frame
+    except Exception as e:
+        print(f"Warning: could not load sp500_info ({e}) — starting with empty data. "
+              "Restore from backup to populate.")
+        return pd.DataFrame()
 
 df = _load_info()
 
 # ── history (grouped by ticker for O(1) lookup) ───────────────────────────────
 def _load_history() -> dict:
-    engine = get_engine()
-    frame = pd.read_sql(
-        "SELECT ticker, date, open, high, low, close, volume FROM sp500_history", engine
-    )
-    frame["date"] = pd.to_datetime(frame["date"]).dt.strftime("%Y-%m-%d")
-    result = {
-        t: g[["date", "open", "high", "low", "close", "volume"]]
-            .rename(columns={"date": "time"})
-            .sort_values("time")
-            .to_dict("records")
-        for t, g in frame.groupby("ticker")
-    }
-    print(f"Loaded history for {len(result)} tickers from MySQL")
-    return result
+    try:
+        engine = get_engine()
+        frame = pd.read_sql(
+            "SELECT ticker, date, open, high, low, close, volume FROM sp500_history", engine
+        )
+        frame["date"] = pd.to_datetime(frame["date"]).dt.strftime("%Y-%m-%d")
+        result = {
+            t: g[["date", "open", "high", "low", "close", "volume"]]
+                .rename(columns={"date": "time"})
+                .sort_values("time")
+                .to_dict("records")
+            for t, g in frame.groupby("ticker")
+        }
+        print(f"Loaded history for {len(result)} tickers from MySQL")
+        return result
+    except Exception as e:
+        print(f"Warning: could not load sp500_history ({e}) — charts will be empty until restore.")
+        return {}
 
 hist_by_ticker = _load_history()
 
