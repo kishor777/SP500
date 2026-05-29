@@ -6,7 +6,203 @@
 SET FOREIGN_KEY_CHECKS=0;
 SET SQL_MODE='NO_AUTO_VALUE_ON_ZERO';
 
--- ── sp500_info (503 rows) ────────────────────────────────────────
+-- ── sp500_info (503 rows) ----------------------------------------
+CREATE TABLE IF NOT EXISTS `sp500_info` (
+  `ticker` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `address1` text COLLATE utf8mb4_unicode_ci,
+  `city` text COLLATE utf8mb4_unicode_ci,
+  `state` text COLLATE utf8mb4_unicode_ci,
+  `zip` text COLLATE utf8mb4_unicode_ci,
+  `country` text COLLATE utf8mb4_unicode_ci,
+  `phone` text COLLATE utf8mb4_unicode_ci,
+  `website` text COLLATE utf8mb4_unicode_ci,
+  `industry` text COLLATE utf8mb4_unicode_ci,
+  `industryKey` text COLLATE utf8mb4_unicode_ci,
+  `industryDisp` text COLLATE utf8mb4_unicode_ci,
+  `sector` text COLLATE utf8mb4_unicode_ci,
+  `sectorKey` text COLLATE utf8mb4_unicode_ci,
+  `sectorDisp` text COLLATE utf8mb4_unicode_ci,
+  `longBusinessSummary` text COLLATE utf8mb4_unicode_ci,
+  `fullTimeEmployees` double DEFAULT NULL,
+  `companyOfficers` text COLLATE utf8mb4_unicode_ci,
+  `auditRisk` double DEFAULT NULL,
+  `boardRisk` double DEFAULT NULL,
+  `compensationRisk` double DEFAULT NULL,
+  `shareHolderRightsRisk` double DEFAULT NULL,
+  `overallRisk` double DEFAULT NULL,
+  `governanceEpochDate` double DEFAULT NULL,
+  `compensationAsOfEpochDate` double DEFAULT NULL,
+  `irWebsite` text COLLATE utf8mb4_unicode_ci,
+  `executiveTeam` text COLLATE utf8mb4_unicode_ci,
+  `maxAge` bigint DEFAULT NULL,
+  `priceHint` bigint DEFAULT NULL,
+  `previousClose` double DEFAULT NULL,
+  `open` double DEFAULT NULL,
+  `dayLow` double DEFAULT NULL,
+  `dayHigh` double DEFAULT NULL,
+  `regularMarketPreviousClose` double DEFAULT NULL,
+  `regularMarketOpen` double DEFAULT NULL,
+  `regularMarketDayLow` double DEFAULT NULL,
+  `regularMarketDayHigh` double DEFAULT NULL,
+  `dividendRate` double DEFAULT NULL,
+  `dividendYield` double DEFAULT NULL,
+  `exDividendDate` double DEFAULT NULL,
+  `payoutRatio` double DEFAULT NULL,
+  `fiveYearAvgDividendYield` double DEFAULT NULL,
+  `beta` double DEFAULT NULL,
+  `trailingPE` double DEFAULT NULL,
+  `forwardPE` double DEFAULT NULL,
+  `volume` bigint DEFAULT NULL,
+  `regularMarketVolume` bigint DEFAULT NULL,
+  `averageVolume` bigint DEFAULT NULL,
+  `averageVolume10days` bigint DEFAULT NULL,
+  `averageDailyVolume10Day` bigint DEFAULT NULL,
+  `bid` double DEFAULT NULL,
+  `ask` double DEFAULT NULL,
+  `bidSize` bigint DEFAULT NULL,
+  `askSize` bigint DEFAULT NULL,
+  `marketCap` bigint DEFAULT NULL,
+  `nonDilutedMarketCap` bigint DEFAULT NULL,
+  `fiftyTwoWeekLow` double DEFAULT NULL,
+  `fiftyTwoWeekHigh` double DEFAULT NULL,
+  `allTimeHigh` double DEFAULT NULL,
+  `allTimeLow` double DEFAULT NULL,
+  `priceToSalesTrailing12Months` double DEFAULT NULL,
+  `fiftyDayAverage` double DEFAULT NULL,
+  `twoHundredDayAverage` double DEFAULT NULL,
+  `trailingAnnualDividendRate` double DEFAULT NULL,
+  `trailingAnnualDividendYield` double DEFAULT NULL,
+  `currency` text COLLATE utf8mb4_unicode_ci,
+  `tradeable` tinyint(1) DEFAULT NULL,
+  `enterpriseValue` double DEFAULT NULL,
+  `profitMargins` double DEFAULT NULL,
+  `floatShares` double DEFAULT NULL,
+  `sharesOutstanding` bigint DEFAULT NULL,
+  `sharesShort` double DEFAULT NULL,
+  `sharesShortPriorMonth` double DEFAULT NULL,
+  `sharesShortPreviousMonthDate` double DEFAULT NULL,
+  `dateShortInterest` double DEFAULT NULL,
+  `sharesPercentSharesOut` double DEFAULT NULL,
+  `heldPercentInsiders` double DEFAULT NULL,
+  `heldPercentInstitutions` double DEFAULT NULL,
+  `shortRatio` double DEFAULT NULL,
+  `shortPercentOfFloat` double DEFAULT NULL,
+  `impliedSharesOutstanding` bigint DEFAULT NULL,
+  `bookValue` double DEFAULT NULL,
+  `priceToBook` double DEFAULT NULL,
+  `lastFiscalYearEnd` double DEFAULT NULL,
+  `nextFiscalYearEnd` double DEFAULT NULL,
+  `mostRecentQuarter` double DEFAULT NULL,
+  `earningsQuarterlyGrowth` double DEFAULT NULL,
+  `netIncomeToCommon` double DEFAULT NULL,
+  `trailingEps` double DEFAULT NULL,
+  `forwardEps` double DEFAULT NULL,
+  `pegRatio` double DEFAULT NULL,
+  `lastSplitFactor` text COLLATE utf8mb4_unicode_ci,
+  `lastSplitDate` double DEFAULT NULL,
+  `enterpriseToRevenue` double DEFAULT NULL,
+  `enterpriseToEbitda` double DEFAULT NULL,
+  `52WeekChange` double DEFAULT NULL,
+  `SandP52WeekChange` double DEFAULT NULL,
+  `lastDividendValue` double DEFAULT NULL,
+  `lastDividendDate` double DEFAULT NULL,
+  `quoteType` text COLLATE utf8mb4_unicode_ci,
+  `currentPrice` double DEFAULT NULL,
+  `targetHighPrice` double DEFAULT NULL,
+  `targetLowPrice` double DEFAULT NULL,
+  `targetMeanPrice` double DEFAULT NULL,
+  `targetMedianPrice` double DEFAULT NULL,
+  `recommendationMean` double DEFAULT NULL,
+  `recommendationKey` text COLLATE utf8mb4_unicode_ci,
+  `numberOfAnalystOpinions` double DEFAULT NULL,
+  `totalCash` double DEFAULT NULL,
+  `totalCashPerShare` double DEFAULT NULL,
+  `ebitda` double DEFAULT NULL,
+  `totalDebt` double DEFAULT NULL,
+  `quickRatio` double DEFAULT NULL,
+  `currentRatio` double DEFAULT NULL,
+  `totalRevenue` double DEFAULT NULL,
+  `debtToEquity` double DEFAULT NULL,
+  `revenuePerShare` double DEFAULT NULL,
+  `returnOnAssets` double DEFAULT NULL,
+  `returnOnEquity` double DEFAULT NULL,
+  `grossProfits` double DEFAULT NULL,
+  `freeCashflow` double DEFAULT NULL,
+  `operatingCashflow` double DEFAULT NULL,
+  `earningsGrowth` double DEFAULT NULL,
+  `revenueGrowth` double DEFAULT NULL,
+  `grossMargins` double DEFAULT NULL,
+  `ebitdaMargins` double DEFAULT NULL,
+  `operatingMargins` double DEFAULT NULL,
+  `financialCurrency` text COLLATE utf8mb4_unicode_ci,
+  `symbol` text COLLATE utf8mb4_unicode_ci,
+  `language` text COLLATE utf8mb4_unicode_ci,
+  `region` text COLLATE utf8mb4_unicode_ci,
+  `typeDisp` text COLLATE utf8mb4_unicode_ci,
+  `quoteSourceName` text COLLATE utf8mb4_unicode_ci,
+  `triggerable` tinyint(1) DEFAULT NULL,
+  `customPriceAlertConfidence` text COLLATE utf8mb4_unicode_ci,
+  `marketState` text COLLATE utf8mb4_unicode_ci,
+  `shortName` text COLLATE utf8mb4_unicode_ci,
+  `longName` text COLLATE utf8mb4_unicode_ci,
+  `postMarketChangePercent` double DEFAULT NULL,
+  `postMarketPrice` double DEFAULT NULL,
+  `postMarketChange` double DEFAULT NULL,
+  `regularMarketChange` double DEFAULT NULL,
+  `regularMarketDayRange` text COLLATE utf8mb4_unicode_ci,
+  `fullExchangeName` text COLLATE utf8mb4_unicode_ci,
+  `averageDailyVolume3Month` bigint DEFAULT NULL,
+  `fiftyTwoWeekLowChange` double DEFAULT NULL,
+  `fiftyTwoWeekLowChangePercent` double DEFAULT NULL,
+  `fiftyTwoWeekRange` text COLLATE utf8mb4_unicode_ci,
+  `fiftyTwoWeekHighChange` double DEFAULT NULL,
+  `fiftyTwoWeekHighChangePercent` double DEFAULT NULL,
+  `fiftyTwoWeekChangePercent` double DEFAULT NULL,
+  `dividendDate` double DEFAULT NULL,
+  `earningsTimestamp` double DEFAULT NULL,
+  `earningsTimestampStart` double DEFAULT NULL,
+  `earningsTimestampEnd` double DEFAULT NULL,
+  `earningsCallTimestampStart` double DEFAULT NULL,
+  `earningsCallTimestampEnd` double DEFAULT NULL,
+  `isEarningsDateEstimate` text COLLATE utf8mb4_unicode_ci,
+  `corporateActions` text COLLATE utf8mb4_unicode_ci,
+  `postMarketTime` bigint DEFAULT NULL,
+  `regularMarketTime` bigint DEFAULT NULL,
+  `exchange` text COLLATE utf8mb4_unicode_ci,
+  `messageBoardId` text COLLATE utf8mb4_unicode_ci,
+  `exchangeTimezoneName` text COLLATE utf8mb4_unicode_ci,
+  `exchangeTimezoneShortName` text COLLATE utf8mb4_unicode_ci,
+  `gmtOffSetMilliseconds` bigint DEFAULT NULL,
+  `market` text COLLATE utf8mb4_unicode_ci,
+  `esgPopulated` tinyint(1) DEFAULT NULL,
+  `regularMarketChangePercent` double DEFAULT NULL,
+  `regularMarketPrice` double DEFAULT NULL,
+  `hasPrePostMarketData` tinyint(1) DEFAULT NULL,
+  `firstTradeDateMilliseconds` bigint DEFAULT NULL,
+  `epsTrailingTwelveMonths` double DEFAULT NULL,
+  `epsForward` double DEFAULT NULL,
+  `epsCurrentYear` double DEFAULT NULL,
+  `priceEpsCurrentYear` double DEFAULT NULL,
+  `fiftyDayAverageChange` double DEFAULT NULL,
+  `fiftyDayAverageChangePercent` double DEFAULT NULL,
+  `twoHundredDayAverageChange` double DEFAULT NULL,
+  `twoHundredDayAverageChangePercent` double DEFAULT NULL,
+  `sourceInterval` bigint DEFAULT NULL,
+  `exchangeDataDelayedBy` bigint DEFAULT NULL,
+  `averageAnalystRating` text COLLATE utf8mb4_unicode_ci,
+  `cryptoTradeable` tinyint(1) DEFAULT NULL,
+  `trailingPegRatio` double DEFAULT NULL,
+  `displayName` text COLLATE utf8mb4_unicode_ci,
+  `address2` text COLLATE utf8mb4_unicode_ci,
+  `fax` text COLLATE utf8mb4_unicode_ci,
+  `ipoExpectedDate` text COLLATE utf8mb4_unicode_ci,
+  `prevName` text COLLATE utf8mb4_unicode_ci,
+  `nameChangeDate` text COLLATE utf8mb4_unicode_ci,
+  `prevTicker` text COLLATE utf8mb4_unicode_ci,
+  `tickerChangeDate` text COLLATE utf8mb4_unicode_ci,
+  `industrySymbol` text COLLATE utf8mb4_unicode_ci,
+  PRIMARY KEY (`ticker`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 TRUNCATE TABLE `sp500_info`;
 INSERT INTO `sp500_info` (`ticker`, `address1`, `city`, `state`, `zip`, `country`, `phone`, `website`, `industry`, `industryKey`, `industryDisp`, `sector`, `sectorKey`, `sectorDisp`, `longBusinessSummary`, `fullTimeEmployees`, `companyOfficers`, `auditRisk`, `boardRisk`, `compensationRisk`, `shareHolderRightsRisk`, `overallRisk`, `governanceEpochDate`, `compensationAsOfEpochDate`, `irWebsite`, `executiveTeam`, `maxAge`, `priceHint`, `previousClose`, `open`, `dayLow`, `dayHigh`, `regularMarketPreviousClose`, `regularMarketOpen`, `regularMarketDayLow`, `regularMarketDayHigh`, `dividendRate`, `dividendYield`, `exDividendDate`, `payoutRatio`, `fiveYearAvgDividendYield`, `beta`, `trailingPE`, `forwardPE`, `volume`, `regularMarketVolume`, `averageVolume`, `averageVolume10days`, `averageDailyVolume10Day`, `bid`, `ask`, `bidSize`, `askSize`, `marketCap`, `nonDilutedMarketCap`, `fiftyTwoWeekLow`, `fiftyTwoWeekHigh`, `allTimeHigh`, `allTimeLow`, `priceToSalesTrailing12Months`, `fiftyDayAverage`, `twoHundredDayAverage`, `trailingAnnualDividendRate`, `trailingAnnualDividendYield`, `currency`, `tradeable`, `enterpriseValue`, `profitMargins`, `floatShares`, `sharesOutstanding`, `sharesShort`, `sharesShortPriorMonth`, `sharesShortPreviousMonthDate`, `dateShortInterest`, `sharesPercentSharesOut`, `heldPercentInsiders`, `heldPercentInstitutions`, `shortRatio`, `shortPercentOfFloat`, `impliedSharesOutstanding`, `bookValue`, `priceToBook`, `lastFiscalYearEnd`, `nextFiscalYearEnd`, `mostRecentQuarter`, `earningsQuarterlyGrowth`, `netIncomeToCommon`, `trailingEps`, `forwardEps`, `pegRatio`, `lastSplitFactor`, `lastSplitDate`, `enterpriseToRevenue`, `enterpriseToEbitda`, `52WeekChange`, `SandP52WeekChange`, `lastDividendValue`, `lastDividendDate`, `quoteType`, `currentPrice`, `targetHighPrice`, `targetLowPrice`, `targetMeanPrice`, `targetMedianPrice`, `recommendationMean`, `recommendationKey`, `numberOfAnalystOpinions`, `totalCash`, `totalCashPerShare`, `ebitda`, `totalDebt`, `quickRatio`, `currentRatio`, `totalRevenue`, `debtToEquity`, `revenuePerShare`, `returnOnAssets`, `returnOnEquity`, `grossProfits`, `freeCashflow`, `operatingCashflow`, `earningsGrowth`, `revenueGrowth`, `grossMargins`, `ebitdaMargins`, `operatingMargins`, `financialCurrency`, `symbol`, `language`, `region`, `typeDisp`, `quoteSourceName`, `triggerable`, `customPriceAlertConfidence`, `marketState`, `shortName`, `longName`, `postMarketChangePercent`, `postMarketPrice`, `postMarketChange`, `regularMarketChange`, `regularMarketDayRange`, `fullExchangeName`, `averageDailyVolume3Month`, `fiftyTwoWeekLowChange`, `fiftyTwoWeekLowChangePercent`, `fiftyTwoWeekRange`, `fiftyTwoWeekHighChange`, `fiftyTwoWeekHighChangePercent`, `fiftyTwoWeekChangePercent`, `dividendDate`, `earningsTimestamp`, `earningsTimestampStart`, `earningsTimestampEnd`, `earningsCallTimestampStart`, `earningsCallTimestampEnd`, `isEarningsDateEstimate`, `corporateActions`, `postMarketTime`, `regularMarketTime`, `exchange`, `messageBoardId`, `exchangeTimezoneName`, `exchangeTimezoneShortName`, `gmtOffSetMilliseconds`, `market`, `esgPopulated`, `regularMarketChangePercent`, `regularMarketPrice`, `hasPrePostMarketData`, `firstTradeDateMilliseconds`, `epsTrailingTwelveMonths`, `epsForward`, `epsCurrentYear`, `priceEpsCurrentYear`, `fiftyDayAverageChange`, `fiftyDayAverageChangePercent`, `twoHundredDayAverageChange`, `twoHundredDayAverageChangePercent`, `sourceInterval`, `exchangeDataDelayedBy`, `averageAnalystRating`, `cryptoTradeable`, `trailingPegRatio`, `displayName`, `address2`, `fax`, `ipoExpectedDate`, `prevName`, `nameChangeDate`, `prevTicker`, `tickerChangeDate`, `industrySymbol`) VALUES ('A', '5301 Stevens Creek Boulevard', 'Santa Clara', 'CA', '95051', 'United States', '800 227 9770', 'https://www.agilent.com', 'Diagnostics & Research', 'diagnostics-research', 'Diagnostics & Research', 'Healthcare', 'healthcare', 'Healthcare', 'Agilent Technologies, Inc. provides application focused solutions to the life sciences, diagnostics, and applied chemical markets worldwide. The company operates through three segments: Life Sciences and Diagnostics Markets, Agilent CrossLab, and Applied Markets. The Life Sciences and Diagnostics Markets segment offers liquid chromatography systems and components; and liquid chromatography mass spectrometry systems. This segment is also involved in the genomics, contract development and manufacturing organization, pathology, companion diagnostics, and biomolecular analysis businesses. The Agilent CrossLab segment provides various services, including repairs, parts, maintenance, installations, training, compliance support, software as a service, asset management, consulting, and other custom services. This segment also offers consumables, including gas chromatography and liquid chromatography columns, sample preparation products, custom chemistries, and various laboratory supplies; software and informatics solutions comprising software for instrument control, data acquisition, data analysis, secure storage of results, and laboratory information and workflow management; and OpenLab laboratory software, an open software platform that enables customers to capture, analyze, and share scientific data throughout the lab and across the enterprise. In addition, it provides automated sample preparation solutions, such as liquid handling, plate management, consumables, and scheduling software. The Applied Markets segment offers products in the areas of gas chromatography, mass spectrometry, spectroscopy, vacuum technology, and remarketed instruments. It markets its products through direct sales, distributors, resellers, manufacturer\'s representatives, and electronic commerce. Agilent Technologies, Inc. was incorporated in 1999 and is headquartered in Santa Clara, California.', 18000.0, '[{"maxAge": 1, "name": "Mr. Padraig  McDonnell", "age": 53, "title": "CEO, President & Director", "yearBorn": 1972, "fiscalYear": 2025, "totalPay": 2639627, "exercisedValue": 0, "unexercisedValue": 591674}, {"maxAge": 1, "name": "Mr. Rodney  Gonsalves", "age": 59, "title": "VP, Corporate Controller & Principal Accounting Officer", "yearBorn": 1966, "fiscalYear": 2025, "totalPay": 832080, "exercisedValue": 0, "unexercisedValue": 199816}, {"maxAge": 1, "name": "Ms. Angelica A. Riemann", "age": 54, "title": "Senior VP & President of Agilent CrossLab Group", "yearBorn": 1971, "fiscalYear": 2025, "totalPay": 1124756, "exercisedValue": 0, "unexercisedValue": 134134}, {"maxAge": 1, "name": "Dr. Simon  May", "age": 52, "title": "Senior VP and President of Life Sciences & Diagnostics Markets Group", "yearBorn": 1973, "fiscalYear": 2025, "totalPay": 1625186, "exercisedValue": 0, "unexercisedValue": 10495}, {"maxAge": 1, "name": "Mr. Adam S. Elinoff", "age": 47, "title": "Senior VP, CFO & Principal Financial Officer", "yearBorn": 1978, "fiscalYear": 2025, "exercisedValue": 0, "unexercisedValue": 0}, {"maxAge": 1, "name": "Mr. August  Specht Ph.D.", "title": "Senior VP & Chief Technology Officer", "fiscalYear": 2025, "exercisedValue": 0, "unexercisedValue": 0}, {"maxAge": 1, "name": "Mr. Tejas Rajeev Savant", "title": "Vice President of Investor Relations", "fiscalYear": 2025, "exercisedValue": 0, "unexercisedValue": 0}, {"maxAge": 1, "name": "Mr. Michael  Buckner", "title": "Senior VP & Chief Legal Officer", "fiscalYear": 2025, "exercisedValue": 0, "unexercisedValue": 0}, {"maxAge": 1, "name": "Mr. Frederick  Schwarz", "title": "Senior VP, Chief Strategy & Corporate Development Officer", "fiscalYear": 2025, "exercisedValue": 0, "unexercisedValue": 0}, {"maxAge": 1, "name": "Ms. Meghan A. Henson", "age": 55, "title": "Senior VP & Chief Human Resources Officer", "yearBorn": 1970, "fiscalYear": 2025, "exercisedValue": 0, "unexercisedValue": 0}]', 8.0, 3.0, 7.0, 6.0, 5.0, 1777593600.0, 1767139200.0, 'http://www.investor.agilent.com/phoenix.zhtml?c=103274&p=irol-irhome', '[]', 86400, 2, 114.96, 114.98, 113.34, 115.75, 114.96, 114.98, 113.34, 115.75, 1.02, 0.89, 1782777600.0, 0.22049999, 0.67, 1.219, 25.403973, 17.566704, 1922901, 1922901, 2138401, 2203340, 2203340, 0.0, 0.0, 400, 400, 32521873408, 32521874640, 108.35, 160.27, 179.57, 7.51073, 4.6032376, 114.846, 129.40945, 0.999, 0.008689979, 'USD', 0, 34313875456.0, 0.18259001, 281641469.0, 282602317, 4824122.0, 4547639.0, 1774915200.0, 1777507200.0, 0.0171, 0.00187, 0.94025004, 2.64, 0.0194, 282602317, 24.436, 4.709445, 1761868800.0, 1793404800.0, 1769817600.0, -0.041, 1290000000.0, 4.53, 6.55103, 1.2, '1398:1000', 1414972800.0, 4.857, 17.409, 0.03787875, 0.27690518, 0.255, 1774915200.0, 'EQUITY', 115.08, 185.0, 140.0, 160.625, 159.5, 1.61111, 'buy', 16.0, 1758000000.0, 6.221, 1971000064.0, 3550000128.0, 1.468, 2.066, 7064999936.0, 51.39, 24.921, 0.08533, 0.19945998, 3695000064.0, 855875008.0, 1396000000.0, -0.036, 0.07, 0.523, 0.27898002, 0.22859, 'USD', 'A', 'en-US', 'US', 'Equity', 'Delayed Quote', 1, 'HIGH', 'PREPRE', 'Agilent Technologies, Inc.', NULL, 0.6430291, 115.82, 0.73999786, 0.120003, '113.34 - 115.75', 'NYSE', 2138401, 6.7300034, 0.062113553, '108.35 - 160.27', -45.190002, -0.2819617, 3.7878752, 1784678400.0, 1779912000.0, 1779912000.0, 1779912000.0, 1779913800.0, 1779913800.0, '0', '[]', 1779840000, 1779825603, 'NYQ', 'finmb_154924', 'America/New_York', 'EDT', -14400000, 'us_market', 0, 0.104387, 115.08, 1, 942935400000, 4.53, 6.55103, 5.96745, 19.284618, 0.23400116, 0.0020375212, -14.3294525, -0.11072957, 15, 0, '1.6 - Buy', 0, 1.2033, 'Agilent', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 INSERT INTO `sp500_info` (`ticker`, `address1`, `city`, `state`, `zip`, `country`, `phone`, `website`, `industry`, `industryKey`, `industryDisp`, `sector`, `sectorKey`, `sectorDisp`, `longBusinessSummary`, `fullTimeEmployees`, `companyOfficers`, `auditRisk`, `boardRisk`, `compensationRisk`, `shareHolderRightsRisk`, `overallRisk`, `governanceEpochDate`, `compensationAsOfEpochDate`, `irWebsite`, `executiveTeam`, `maxAge`, `priceHint`, `previousClose`, `open`, `dayLow`, `dayHigh`, `regularMarketPreviousClose`, `regularMarketOpen`, `regularMarketDayLow`, `regularMarketDayHigh`, `dividendRate`, `dividendYield`, `exDividendDate`, `payoutRatio`, `fiveYearAvgDividendYield`, `beta`, `trailingPE`, `forwardPE`, `volume`, `regularMarketVolume`, `averageVolume`, `averageVolume10days`, `averageDailyVolume10Day`, `bid`, `ask`, `bidSize`, `askSize`, `marketCap`, `nonDilutedMarketCap`, `fiftyTwoWeekLow`, `fiftyTwoWeekHigh`, `allTimeHigh`, `allTimeLow`, `priceToSalesTrailing12Months`, `fiftyDayAverage`, `twoHundredDayAverage`, `trailingAnnualDividendRate`, `trailingAnnualDividendYield`, `currency`, `tradeable`, `enterpriseValue`, `profitMargins`, `floatShares`, `sharesOutstanding`, `sharesShort`, `sharesShortPriorMonth`, `sharesShortPreviousMonthDate`, `dateShortInterest`, `sharesPercentSharesOut`, `heldPercentInsiders`, `heldPercentInstitutions`, `shortRatio`, `shortPercentOfFloat`, `impliedSharesOutstanding`, `bookValue`, `priceToBook`, `lastFiscalYearEnd`, `nextFiscalYearEnd`, `mostRecentQuarter`, `earningsQuarterlyGrowth`, `netIncomeToCommon`, `trailingEps`, `forwardEps`, `pegRatio`, `lastSplitFactor`, `lastSplitDate`, `enterpriseToRevenue`, `enterpriseToEbitda`, `52WeekChange`, `SandP52WeekChange`, `lastDividendValue`, `lastDividendDate`, `quoteType`, `currentPrice`, `targetHighPrice`, `targetLowPrice`, `targetMeanPrice`, `targetMedianPrice`, `recommendationMean`, `recommendationKey`, `numberOfAnalystOpinions`, `totalCash`, `totalCashPerShare`, `ebitda`, `totalDebt`, `quickRatio`, `currentRatio`, `totalRevenue`, `debtToEquity`, `revenuePerShare`, `returnOnAssets`, `returnOnEquity`, `grossProfits`, `freeCashflow`, `operatingCashflow`, `earningsGrowth`, `revenueGrowth`, `grossMargins`, `ebitdaMargins`, `operatingMargins`, `financialCurrency`, `symbol`, `language`, `region`, `typeDisp`, `quoteSourceName`, `triggerable`, `customPriceAlertConfidence`, `marketState`, `shortName`, `longName`, `postMarketChangePercent`, `postMarketPrice`, `postMarketChange`, `regularMarketChange`, `regularMarketDayRange`, `fullExchangeName`, `averageDailyVolume3Month`, `fiftyTwoWeekLowChange`, `fiftyTwoWeekLowChangePercent`, `fiftyTwoWeekRange`, `fiftyTwoWeekHighChange`, `fiftyTwoWeekHighChangePercent`, `fiftyTwoWeekChangePercent`, `dividendDate`, `earningsTimestamp`, `earningsTimestampStart`, `earningsTimestampEnd`, `earningsCallTimestampStart`, `earningsCallTimestampEnd`, `isEarningsDateEstimate`, `corporateActions`, `postMarketTime`, `regularMarketTime`, `exchange`, `messageBoardId`, `exchangeTimezoneName`, `exchangeTimezoneShortName`, `gmtOffSetMilliseconds`, `market`, `esgPopulated`, `regularMarketChangePercent`, `regularMarketPrice`, `hasPrePostMarketData`, `firstTradeDateMilliseconds`, `epsTrailingTwelveMonths`, `epsForward`, `epsCurrentYear`, `priceEpsCurrentYear`, `fiftyDayAverageChange`, `fiftyDayAverageChangePercent`, `twoHundredDayAverageChange`, `twoHundredDayAverageChangePercent`, `sourceInterval`, `exchangeDataDelayedBy`, `averageAnalystRating`, `cryptoTradeable`, `trailingPegRatio`, `displayName`, `address2`, `fax`, `ipoExpectedDate`, `prevName`, `nameChangeDate`, `prevTicker`, `tickerChangeDate`, `industrySymbol`) VALUES ('AAPL', 'One Apple Park Way', 'Cupertino', 'CA', '95014', 'United States', '(408) 996-1010', 'https://www.apple.com', 'Consumer Electronics', 'consumer-electronics', 'Consumer Electronics', 'Technology', 'technology', 'Technology', 'Apple Inc. designs, manufactures, and markets smartphones, personal computers, tablets, wearables, and accessories worldwide. The company offers iPhone, a line of smartphones; Mac, a line of personal computers; iPad, a line of multi-purpose tablets; and wearables, home, and accessories comprising AirPods, Apple Vision Pro, Apple TV, Apple Watch, Beats products, and HomePod, as well as Apple branded and third-party accessories. It also provides AppleCare support and cloud services; and operates various platforms, including the App Store that allow customers to discover and download applications and digital content, such as books, music, video, games, and podcasts, as well as advertising services include third-party licensing arrangements and its own advertising platforms. In addition, the company offers various subscription-based services, such as Apple Arcade, a game subscription service; Apple Fitness+, a personalized fitness service; Apple Music, which offers users a curated listening experience with on-demand radio stations; Apple News+, a subscription news and magazine service; Apple TV, which offers exclusive original content and live sports; Apple Card, a co-branded credit card; and Apple Pay, a cashless payment service, as well as licenses its intellectual property. The company serves consumers, and small and mid-sized businesses; and the education, enterprise, and government markets. It distributes third-party applications for its products through the App Store. The company also sells its products through its retail and online stores, and direct sales force; and third-party cellular network carriers and resellers. The company was formerly known as Apple Computer, Inc. and changed its name to Apple Inc. in January 2007. Apple Inc. was founded in 1976 and is headquartered in Cupertino, California.', 166000.0, '[{"maxAge": 1, "name": "Mr. Timothy D. Cook", "age": 64, "title": "CEO & Director", "yearBorn": 1961, "fiscalYear": 2025, "totalPay": 16759518, "exercisedValue": 0, "unexercisedValue": 0}, {"maxAge": 1, "name": "Mr. Kevan  Parekh", "age": 53, "title": "Senior VP & CFO", "yearBorn": 1972, "fiscalYear": 2025, "totalPay": 4034174, "exercisedValue": 0, "unexercisedValue": 0}, {"maxAge": 1, "name": "Mr. Sabih  Khan", "age": 58, "title": "Senior VP & Chief Operating Officer", "yearBorn": 1967, "fiscalYear": 2025, "totalPay": 5021905, "exercisedValue": 0, "unexercisedValue": 0}, {"maxAge": 1, "name": "Ms. Deirdre  O\'Brien", "age": 58, "title": "Senior Vice President of Retail & People", "yearBorn": 1967, "fiscalYear": 2025, "totalPay": 5037867, "exercisedValue": 0, "unexercisedValue": 0}, {"maxAge": 1, "name": "Ms. Katherine L. Adams", "age": 61, "title": "Senior VP of Government Affairs & Secretary", "yearBorn": 1964, "fiscalYear": 2025, "totalPay": 5022482, "exercisedValue": 0, "unexercisedValue": 0}, {"maxAge": 1, "name": "Mr. Ben  Borders", "age": 44, "title": "Principal Accounting Officer", "yearBorn": 1981, "fiscalYear": 2025, "exercisedValue": 0, "unexercisedValue": 0}, {"maxAge": 1, "name": "Suhasini  Chandramouli", "title": "Director of Investor Relations", "fiscalYear": 2025, "exercisedValue": 0, "unexercisedValue": 0}, {"maxAge": 1, "name": "Ms. Jennifer G. Newstead J.D.", "age": 55, "title": "Senior VP & General Counsel", "yearBorn": 1970, "fiscalYear": 2025, "exercisedValue": 0, "unexercisedValue": 0}, {"maxAge": 1, "name": "Ms. Kristin Huguet Quayle", "title": "Vice President of Worldwide Communications", "fiscalYear": 2025, "exercisedValue": 0, "unexercisedValue": 0}, {"maxAge": 1, "name": "Mr. Greg  Joswiak", "title": "Senior Vice President of Worldwide Marketing", "fiscalYear": 2025, "exercisedValue": 0, "unexercisedValue": 0}]', 2.0, 1.0, 7.0, 1.0, 1.0, 1777593600.0, 1767139200.0, 'http://investor.apple.com/', '[]', 86400, 2, 308.82, 309.4, 307.67, 311.82, 308.82, 309.4, 307.67, 311.82, 1.08, 0.35, 1778457600.0, 0.1259, 0.51, 1.065, 37.328083, 32.091232, 46602561, 46602561, 43668981, 43816870, 43816870, 307.55, 308.48, 5, 5, 4528552280064, 4535749279920, 195.07, 311.82, 311.82, 0.049107, 10.031304, 271.716, 261.99094, 1.04, 0.0033676573, 'USD', 0, 4544756449280.0, 0.27152002, 14662387495.0, 14687356000, 134675274.0, 126771284.0, 1774915200.0, 1777507200.0, 0.0092, 0.01633, 0.65800005, 3.11, 0.0092, 14687356000, 7.26, 42.469692, 1758931200.0, 1790467200.0, 1774656000.0, 0.194, 122575003648.0, 8.26, 9.60792, 2.68, '4:1', 1598832000.0, 10.067, 28.409, 0.53841937, 0.27690518, 0.27, 1778457600.0, 'EQUITY', 308.33, 400.0, 215.0, 310.507, 310.0, 1.97917, 'buy', 43.0, 68507000832.0, 4.664, 159975997440.0, 84710998016.0, 0.906, 1.07, 451442016256.0, 79.548, 30.534, 0.26229, 1.4147099, 216070995968.0, 101090746368.0, 140222005248.0, 0.218, 0.166, 0.47862, 0.35437, 0.32275, 'USD', 'AAPL', 'en-US', 'US', 'Equity', 'Nasdaq Real Time Price', 1, 'HIGH', 'PREPRE', 'Apple Inc.', 'Apple Inc.', 0.12512673, 308.7158, 0.38580322, -0.490021, '307.67 - 311.82', 'NasdaqGS', 43668981, 113.25998, 0.58061194, '195.07 - 311.82', -3.4900208, -0.0111924205, 53.841938, 1778716800.0, 1777579200.0, 1785441600.0, 1785441600.0, 1777582800.0, 1777582800.0, '1', '[]', 1779839984, 1779825601, 'NMS', 'finmb_24937', 'America/New_York', 'EDT', -14400000, 'us_market', 0, -0.158675, 308.33, 1, 345479400000, 8.26, 9.60792, 8.74834, 35.2444, 36.613983, 0.13475093, 46.33905, 0.17687273, 15, 0, '2.0 - Buy', 0, 2.6873, 'Apple', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
@@ -512,7 +708,20 @@ INSERT INTO `sp500_info` (`ticker`, `address1`, `city`, `state`, `zip`, `country
 INSERT INTO `sp500_info` (`ticker`, `address1`, `city`, `state`, `zip`, `country`, `phone`, `website`, `industry`, `industryKey`, `industryDisp`, `sector`, `sectorKey`, `sectorDisp`, `longBusinessSummary`, `fullTimeEmployees`, `companyOfficers`, `auditRisk`, `boardRisk`, `compensationRisk`, `shareHolderRightsRisk`, `overallRisk`, `governanceEpochDate`, `compensationAsOfEpochDate`, `irWebsite`, `executiveTeam`, `maxAge`, `priceHint`, `previousClose`, `open`, `dayLow`, `dayHigh`, `regularMarketPreviousClose`, `regularMarketOpen`, `regularMarketDayLow`, `regularMarketDayHigh`, `dividendRate`, `dividendYield`, `exDividendDate`, `payoutRatio`, `fiveYearAvgDividendYield`, `beta`, `trailingPE`, `forwardPE`, `volume`, `regularMarketVolume`, `averageVolume`, `averageVolume10days`, `averageDailyVolume10Day`, `bid`, `ask`, `bidSize`, `askSize`, `marketCap`, `nonDilutedMarketCap`, `fiftyTwoWeekLow`, `fiftyTwoWeekHigh`, `allTimeHigh`, `allTimeLow`, `priceToSalesTrailing12Months`, `fiftyDayAverage`, `twoHundredDayAverage`, `trailingAnnualDividendRate`, `trailingAnnualDividendYield`, `currency`, `tradeable`, `enterpriseValue`, `profitMargins`, `floatShares`, `sharesOutstanding`, `sharesShort`, `sharesShortPriorMonth`, `sharesShortPreviousMonthDate`, `dateShortInterest`, `sharesPercentSharesOut`, `heldPercentInsiders`, `heldPercentInstitutions`, `shortRatio`, `shortPercentOfFloat`, `impliedSharesOutstanding`, `bookValue`, `priceToBook`, `lastFiscalYearEnd`, `nextFiscalYearEnd`, `mostRecentQuarter`, `earningsQuarterlyGrowth`, `netIncomeToCommon`, `trailingEps`, `forwardEps`, `pegRatio`, `lastSplitFactor`, `lastSplitDate`, `enterpriseToRevenue`, `enterpriseToEbitda`, `52WeekChange`, `SandP52WeekChange`, `lastDividendValue`, `lastDividendDate`, `quoteType`, `currentPrice`, `targetHighPrice`, `targetLowPrice`, `targetMeanPrice`, `targetMedianPrice`, `recommendationMean`, `recommendationKey`, `numberOfAnalystOpinions`, `totalCash`, `totalCashPerShare`, `ebitda`, `totalDebt`, `quickRatio`, `currentRatio`, `totalRevenue`, `debtToEquity`, `revenuePerShare`, `returnOnAssets`, `returnOnEquity`, `grossProfits`, `freeCashflow`, `operatingCashflow`, `earningsGrowth`, `revenueGrowth`, `grossMargins`, `ebitdaMargins`, `operatingMargins`, `financialCurrency`, `symbol`, `language`, `region`, `typeDisp`, `quoteSourceName`, `triggerable`, `customPriceAlertConfidence`, `marketState`, `shortName`, `longName`, `postMarketChangePercent`, `postMarketPrice`, `postMarketChange`, `regularMarketChange`, `regularMarketDayRange`, `fullExchangeName`, `averageDailyVolume3Month`, `fiftyTwoWeekLowChange`, `fiftyTwoWeekLowChangePercent`, `fiftyTwoWeekRange`, `fiftyTwoWeekHighChange`, `fiftyTwoWeekHighChangePercent`, `fiftyTwoWeekChangePercent`, `dividendDate`, `earningsTimestamp`, `earningsTimestampStart`, `earningsTimestampEnd`, `earningsCallTimestampStart`, `earningsCallTimestampEnd`, `isEarningsDateEstimate`, `corporateActions`, `postMarketTime`, `regularMarketTime`, `exchange`, `messageBoardId`, `exchangeTimezoneName`, `exchangeTimezoneShortName`, `gmtOffSetMilliseconds`, `market`, `esgPopulated`, `regularMarketChangePercent`, `regularMarketPrice`, `hasPrePostMarketData`, `firstTradeDateMilliseconds`, `epsTrailingTwelveMonths`, `epsForward`, `epsCurrentYear`, `priceEpsCurrentYear`, `fiftyDayAverageChange`, `fiftyDayAverageChangePercent`, `twoHundredDayAverageChange`, `twoHundredDayAverageChangePercent`, `sourceInterval`, `exchangeDataDelayedBy`, `averageAnalystRating`, `cryptoTradeable`, `trailingPegRatio`, `displayName`, `address2`, `fax`, `ipoExpectedDate`, `prevName`, `nameChangeDate`, `prevTicker`, `tickerChangeDate`, `industrySymbol`) VALUES ('ZBRA', '3 Overlook Point', 'Lincolnshire', 'IL', '60069', 'United States', '847 634 6700', 'https://www.zebra.com', 'Communication Equipment', 'communication-equipment', 'Communication Equipment', 'Technology', 'technology', 'Technology', 'Zebra Technologies Corporation, together with its subsidiaries, operates in the automatic identification and data capture solutions industry worldwide. It operates in two segments, Connected Frontline, and Asset Visibility and Automation. The company designs, manufactures, and sells printers that produce labels, wristbands, tickets, receipts, and plastic cards; dye-sublimination thermal card printers that produce images, which are used for personal identification, access control, and financial transactions; radio frequency identification device (RFID) printers that encode data into passive RFID transponders; accessories and options for printers, including carrying cases, vehicle mounts, and battery chargers; stock and customized thermal labels, receipts, ribbons, plastic cards, and RFID tags for printers; and electronic sensors and temperature-monitoring labels. It also provides various maintenance, technical support, repair, and managed and professional services; fixed readers, RFID enabled mobile computers, and RFID sleds; tags, sensors, exciters, middleware software, and application software; and physical inventory management solutions; rugged and enterprise-grade mobile computing products and accessories, as well as real-time location systems and services. In addition, the company offers barcode scanners and imagers, RFID readers, industrial machine vision cameras, and fixed industrial scanners; point-of-sale solutions, self-serve kiosks, and interactive touchscreen displays; workflow optimization solutions, such as workforce management, workflow execution and task management, and prescriptive analytics, and communications and collaboration solutions; and cloud-based software. The company serves retail and e-commerce, manufacturing, transportation and logistics, healthcare, public sector, and other industries through direct sales force and network of channel partners. The company was founded in 1969 and is headquartered in Lincolnshire, Illinois.', 10700.0, '[{"maxAge": 1, "name": "Mr. William J. Burns", "age": 58, "title": "CEO & Director", "yearBorn": 1967, "fiscalYear": 2025, "totalPay": 2890087, "exercisedValue": 587436, "unexercisedValue": 164523}, {"maxAge": 1, "name": "Mr. Nathan Andrew Winters", "age": 45, "title": "Chief Financial Officer", "yearBorn": 1980, "fiscalYear": 2025, "totalPay": 1423533, "exercisedValue": 55791, "unexercisedValue": 11913}, {"maxAge": 1, "name": "Ms. Cristen L. Kogl J.D.", "age": 59, "title": "Chief Legal Officer, General Counsel & Corporate Secretary", "yearBorn": 1966, "fiscalYear": 2025, "totalPay": 1278147, "exercisedValue": 0, "unexercisedValue": 85202}, {"maxAge": 1, "name": "Mr. Jeffrey F. Schmitz", "age": 61, "title": "Senior Vice President", "yearBorn": 1964, "fiscalYear": 2025, "totalPay": 1120597, "exercisedValue": 0, "unexercisedValue": 32950}, {"maxAge": 1, "name": "Mr. Richard Edward Hudson", "age": 57, "title": "Chief Revenue Officer", "yearBorn": 1968, "fiscalYear": 2025, "totalPay": 1547940, "exercisedValue": 0, "unexercisedValue": 0}, {"maxAge": 1, "name": "Ms. Colleen M. O\'Sullivan", "age": 58, "title": "Senior VP & Chief Accounting Officer", "yearBorn": 1967, "fiscalYear": 2025, "exercisedValue": 0, "unexercisedValue": 0}, {"maxAge": 1, "name": "Mr. Tom  Bianculli", "title": "Chief Technology Officer", "fiscalYear": 2025, "exercisedValue": 0, "unexercisedValue": 0}, {"maxAge": 1, "name": "Mr. Matt  Ausman", "title": "Chief Information Officer", "fiscalYear": 2025, "exercisedValue": 0, "unexercisedValue": 0}, {"maxAge": 1, "name": "Mr. Michael A. Steele C.F.A., IRC", "age": 52, "title": "Vice President of Investor Relations", "yearBorn": 1973, "fiscalYear": 2025, "exercisedValue": 0, "unexercisedValue": 0}, {"maxAge": 1, "name": "Ms. Therese  Van Ryne", "title": "Senior Director of External Communications", "fiscalYear": 2025, "exercisedValue": 0, "unexercisedValue": 0}]', 1.0, 9.0, 2.0, 8.0, 7.0, 1777593600.0, 1767139200.0, 'http://www.zebra.com/id/zebra/na/en/index/about_zebra/investor_relations.html', '[]', 86400, 2, 255.55, 253.95, 249.57, 258.0, 255.55, 253.95, 249.57, 258.0, NULL, NULL, NULL, 0.0, NULL, 1.624, 30.487925, 12.190681, 1064696, 1064696, 854195, 1348870, 1348870, 234.06, 272.88, 2, 2, 12024573952, 12172713325, 199.05, 352.66, 615.0, 3.222222, 2.1537836, 224.9356, 259.29645, 0.0, 0.0, 'USD', 0, 14759573504.0, 0.07487, 47176588.0, 47633392, 3128746.0, 2157476.0, 1774915200.0, 1777507200.0, 0.0647, 0.00822, 1.03316, 4.06, 0.0756, 47633392, 72.349, 3.4891982, 1767139200.0, 1798675200.0, 1775260800.0, -0.007, 418000000.0, 8.28, 20.70762, 0.54, '3:2', 1093478400.0, 2.644, 14.386, -0.131912, 0.27690518, NULL, NULL, 'EQUITY', 252.44, 400.0, 267.0, 328.88354, 335.0, 1.66667, 'buy', 17.0, 114000000.0, 2.393, 1026000000.0, 2848999936.0, 0.497, 0.961, 5583000064.0, 82.104, 111.141, 0.06361, 0.11781, 2689999872.0, 559000000.0, 915000000.0, 0.038, 0.143, 0.48182, 0.18377, 0.14983, 'USD', 'ZBRA', 'en-US', 'US', 'Equity', 'Nasdaq Real Time Price', 1, 'HIGH', 'PREPRE', 'Zebra Technologies Corporation', 'Zebra Technologies Corporation', 0.11884133, 252.74, 0.30000305, -3.11, '249.57 - 258.0', 'NasdaqGS', 854195, 53.39, 0.26822406, '199.05 - 352.66', -100.22, -0.28418306, -13.191199, NULL, 1778589000.0, 1785846600.0, 1785846600.0, 1778589000.0, 1778589000.0, '1', '[]', 1779839271, 1779825600, 'NMS', 'finmb_393488', 'America/New_York', 'EDT', -14400000, 'us_market', 0, -1.21698, 252.44, 1, 682263000000, 8.28, 20.70762, 18.541, 13.615231, 27.50441, 0.12227682, -6.8564453, -0.026442496, 15, 0, '1.7 - Buy', 0, 0.5465, 'Zebra', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 INSERT INTO `sp500_info` (`ticker`, `address1`, `city`, `state`, `zip`, `country`, `phone`, `website`, `industry`, `industryKey`, `industryDisp`, `sector`, `sectorKey`, `sectorDisp`, `longBusinessSummary`, `fullTimeEmployees`, `companyOfficers`, `auditRisk`, `boardRisk`, `compensationRisk`, `shareHolderRightsRisk`, `overallRisk`, `governanceEpochDate`, `compensationAsOfEpochDate`, `irWebsite`, `executiveTeam`, `maxAge`, `priceHint`, `previousClose`, `open`, `dayLow`, `dayHigh`, `regularMarketPreviousClose`, `regularMarketOpen`, `regularMarketDayLow`, `regularMarketDayHigh`, `dividendRate`, `dividendYield`, `exDividendDate`, `payoutRatio`, `fiveYearAvgDividendYield`, `beta`, `trailingPE`, `forwardPE`, `volume`, `regularMarketVolume`, `averageVolume`, `averageVolume10days`, `averageDailyVolume10Day`, `bid`, `ask`, `bidSize`, `askSize`, `marketCap`, `nonDilutedMarketCap`, `fiftyTwoWeekLow`, `fiftyTwoWeekHigh`, `allTimeHigh`, `allTimeLow`, `priceToSalesTrailing12Months`, `fiftyDayAverage`, `twoHundredDayAverage`, `trailingAnnualDividendRate`, `trailingAnnualDividendYield`, `currency`, `tradeable`, `enterpriseValue`, `profitMargins`, `floatShares`, `sharesOutstanding`, `sharesShort`, `sharesShortPriorMonth`, `sharesShortPreviousMonthDate`, `dateShortInterest`, `sharesPercentSharesOut`, `heldPercentInsiders`, `heldPercentInstitutions`, `shortRatio`, `shortPercentOfFloat`, `impliedSharesOutstanding`, `bookValue`, `priceToBook`, `lastFiscalYearEnd`, `nextFiscalYearEnd`, `mostRecentQuarter`, `earningsQuarterlyGrowth`, `netIncomeToCommon`, `trailingEps`, `forwardEps`, `pegRatio`, `lastSplitFactor`, `lastSplitDate`, `enterpriseToRevenue`, `enterpriseToEbitda`, `52WeekChange`, `SandP52WeekChange`, `lastDividendValue`, `lastDividendDate`, `quoteType`, `currentPrice`, `targetHighPrice`, `targetLowPrice`, `targetMeanPrice`, `targetMedianPrice`, `recommendationMean`, `recommendationKey`, `numberOfAnalystOpinions`, `totalCash`, `totalCashPerShare`, `ebitda`, `totalDebt`, `quickRatio`, `currentRatio`, `totalRevenue`, `debtToEquity`, `revenuePerShare`, `returnOnAssets`, `returnOnEquity`, `grossProfits`, `freeCashflow`, `operatingCashflow`, `earningsGrowth`, `revenueGrowth`, `grossMargins`, `ebitdaMargins`, `operatingMargins`, `financialCurrency`, `symbol`, `language`, `region`, `typeDisp`, `quoteSourceName`, `triggerable`, `customPriceAlertConfidence`, `marketState`, `shortName`, `longName`, `postMarketChangePercent`, `postMarketPrice`, `postMarketChange`, `regularMarketChange`, `regularMarketDayRange`, `fullExchangeName`, `averageDailyVolume3Month`, `fiftyTwoWeekLowChange`, `fiftyTwoWeekLowChangePercent`, `fiftyTwoWeekRange`, `fiftyTwoWeekHighChange`, `fiftyTwoWeekHighChangePercent`, `fiftyTwoWeekChangePercent`, `dividendDate`, `earningsTimestamp`, `earningsTimestampStart`, `earningsTimestampEnd`, `earningsCallTimestampStart`, `earningsCallTimestampEnd`, `isEarningsDateEstimate`, `corporateActions`, `postMarketTime`, `regularMarketTime`, `exchange`, `messageBoardId`, `exchangeTimezoneName`, `exchangeTimezoneShortName`, `gmtOffSetMilliseconds`, `market`, `esgPopulated`, `regularMarketChangePercent`, `regularMarketPrice`, `hasPrePostMarketData`, `firstTradeDateMilliseconds`, `epsTrailingTwelveMonths`, `epsForward`, `epsCurrentYear`, `priceEpsCurrentYear`, `fiftyDayAverageChange`, `fiftyDayAverageChangePercent`, `twoHundredDayAverageChange`, `twoHundredDayAverageChangePercent`, `sourceInterval`, `exchangeDataDelayedBy`, `averageAnalystRating`, `cryptoTradeable`, `trailingPegRatio`, `displayName`, `address2`, `fax`, `ipoExpectedDate`, `prevName`, `nameChangeDate`, `prevTicker`, `tickerChangeDate`, `industrySymbol`) VALUES ('ZTS', '10 Sylvan Way', 'Parsippany', 'NJ', '07054', 'United States', '973 822 7000', 'https://www.zoetis.com', 'Drug Manufacturers - Specialty & Generic', 'drug-manufacturers-specialty-generic', 'Drug Manufacturers - Specialty & Generic', 'Healthcare', 'healthcare', 'Healthcare', 'Zoetis Inc. engages in the discovery, development, manufacture, and commercialization of medicines, vaccines, diagnostic products and services, biodevices, genetic tests, and precision animal health solutions for the animal health industry in the United States and internationally. The company commercializes products primarily across companion animals comprising dogs, cats, and horses; and species, including livestock, such as cattle, swine, poultry, fish, and sheep. It also offers parasiticides, vaccines, dermatology, anti-infectives, pain and sedation, other pharmaceutical, and animal health diagnostics. In addition, the company provides animal health diagnostics, including point-of-care diagnostic products, instruments and reagents, rapid immunoassay tests, reference laboratory kits and services, and blood glucose monitors; and other non-pharmaceutical products, which include nutritionals, as well as products and services in biodevices, genetic tests, and precision animal health. It markets its products to veterinarians, livestock producers, and pet owners. The company has collaborated with Blacksmith Medicines, Inc. to discover and develop novel antibiotics for animal health. Zoetis Inc. was incorporated in 2012 and is headquartered in Parsippany, New Jersey.', 14500.0, '[{"maxAge": 1, "name": "Ms. Kristin C. Peck", "age": 54, "title": "CEO & Director", "yearBorn": 1971, "fiscalYear": 2025, "totalPay": 5421697, "exercisedValue": 42246, "unexercisedValue": 6077486}, {"maxAge": 1, "name": "Mr. Wetteny N. Joseph CPA", "age": 53, "title": "Executive VP & CFO", "yearBorn": 1972, "fiscalYear": 2025, "totalPay": 1796941, "exercisedValue": 0, "unexercisedValue": 0}, {"maxAge": 1, "name": "Ms. Roxanne  Lagano", "age": 60, "title": "Executive VP, General Counsel & Corporate Secretary", "yearBorn": 1965, "fiscalYear": 2025, "totalPay": 1435587, "exercisedValue": 0, "unexercisedValue": 0}, {"maxAge": 1, "name": "Dr. Robert J. Polzer Ph.D.", "age": 56, "title": "Scientific Advisor", "yearBorn": 1969, "fiscalYear": 2025, "totalPay": 1445441, "exercisedValue": 0, "unexercisedValue": 0}, {"maxAge": 1, "name": "Mr. Jamie  Brannan", "age": 52, "title": "Executive VP & Chief Commercial Officer", "yearBorn": 1973, "fiscalYear": 2025, "totalPay": 1742448, "exercisedValue": 0, "unexercisedValue": 201455}, {"maxAge": 1, "name": "Mr. Keith  Sarbaugh", "age": 46, "title": "Executive VP & Chief Digital and Technology Officer", "yearBorn": 1979, "fiscalYear": 2025, "exercisedValue": 0, "unexercisedValue": 0}, {"maxAge": 1, "name": "Mr. Steven  Frank", "title": "Vice President of Investor Relations", "fiscalYear": 2025, "exercisedValue": 0, "unexercisedValue": 0}, {"maxAge": 1, "name": "Ms. Julie A. Fuller", "age": 52, "title": "Executive VP, Chief Human Resources Officer & Global Operations", "yearBorn": 1973, "fiscalYear": 2025, "exercisedValue": 0, "unexercisedValue": 0}, {"maxAge": 1, "name": "Ms. Jeannette Ferran Astorga", "age": 49, "title": "Executive VP of Corporate Affairs & Chief Sustainability Officer", "yearBorn": 1976, "fiscalYear": 2025, "exercisedValue": 0, "unexercisedValue": 0}, {"maxAge": 1, "name": "Mr. Nick  Ashton", "age": 51, "title": "Executive VP and President of Global Manufacturing & Supply", "yearBorn": 1974, "fiscalYear": 2025, "exercisedValue": 0, "unexercisedValue": 0}]', 4.0, 1.0, 2.0, 6.0, 2.0, 1777593600.0, 1767139200.0, NULL, '[]', 86400, 2, 81.32, 80.78, 79.945, 81.31, 81.32, 80.78, 79.945, 81.31, 2.12, 2.64, 1784505600.0, 0.3328, 0.92, 0.863, 13.15246, 10.793641, 5682237, 5682237, 5529127, 10326380, 10326380, 0.0, 0.0, 300, 200, 33634674688, 33634671907, 72.38, 172.23, 249.27, 28.14, 3.5289764, 107.9782, 127.3946, 2.03, 0.024963109, 'USD', 0, 40947671040.0, 0.28035, 418377085.0, 419228118, 14800585.0, 15115992.0, 1774915200.0, 1777507200.0, 0.0352, 0.00155, 1.0276799, 4.54, 0.0398, 419228118, 7.839, 10.234724, 1767139200.0, 1798675200.0, 1774915200.0, -0.002, 2672000000.0, 6.1, 7.43308, 1.92, NULL, NULL, 4.296, 10.051, -0.5083434, 0.27690518, 0.53, 1776643200.0, 'EQUITY', 80.23, 160.0, 90.0, 124.58824, 130.0, 1.95, 'buy', 17.0, 1940999936.0, 4.63, 4073999872.0, 9253999616.0, 1.679, 3.153, 9530999808.0, 286.236, 21.807, 0.15525, 0.67748, 6847000064.0, 1780875008.0, 2790000128.0, 0.06, 0.029, 0.71839, 0.42745, 0.36561, 'USD', 'ZTS', 'en-US', 'US', 'Equity', 'Delayed Quote', 1, 'HIGH', 'PREPRE', 'Zoetis Inc.', 'Zoetis Inc.', -0.03489951, 80.202, -0.027999878, -1.09, '79.945 - 81.31', 'NYSE', 5529127, 7.850006, 0.108455464, '72.38 - 172.23', -91.99999, -0.5341694, -50.83434, 1788220800.0, 1778157000.0, 1785846600.0, 1785846600.0, 1778157000.0, 1778157000.0, '1', '[]', 1779840000, 1779825603, 'NYQ', 'finmb_215548781', 'America/New_York', 'EDT', -14400000, 'us_market', 0, -1.34038, 80.23, 1, 1359729000000, 6.1, 7.43308, 6.89272, 11.639817, -27.7482, -0.25697964, -47.164597, -0.37022445, 15, 0, '2.0 - Buy', 0, 1.9229, 'Zoetis', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
--- ── guru_rules (130 rows) ────────────────────────────────────────
+-- ── guru_rules (130 rows) ----------------------------------------
+CREATE TABLE IF NOT EXISTS `guru_rules` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `slug` varchar(50) NOT NULL,
+  `field_id` varchar(100) NOT NULL,
+  `rule_type` enum('min','max','categorical') NOT NULL,
+  `num_value` double DEFAULT NULL,
+  `cat_values` text COMMENT 'JSON array for categorical rules',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_slug_field_type` (`slug`,`field_id`,`rule_type`),
+  KEY `idx_slug` (`slug`)
+) ENGINE=InnoDB AUTO_INCREMENT=131 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 TRUNCATE TABLE `guru_rules`;
 INSERT INTO `guru_rules` (`id`, `slug`, `field_id`, `rule_type`, `num_value`, `cat_values`, `is_active`, `updated_at`) VALUES (1, 'buffett', 'returnOnEquity', 'min', 15.0, NULL, 1, '2026-05-26 09:12:33');
 INSERT INTO `guru_rules` (`id`, `slug`, `field_id`, `rule_type`, `num_value`, `cat_values`, `is_active`, `updated_at`) VALUES (2, 'buffett', 'grossMargins', 'min', 40.0, NULL, 1, '2026-05-26 09:12:33');
@@ -645,12 +854,37 @@ INSERT INTO `guru_rules` (`id`, `slug`, `field_id`, `rule_type`, `num_value`, `c
 INSERT INTO `guru_rules` (`id`, `slug`, `field_id`, `rule_type`, `num_value`, `cat_values`, `is_active`, `updated_at`) VALUES (129, 'griffin', 'beta', 'max', 2.5, NULL, 1, '2026-05-26 09:12:34');
 INSERT INTO `guru_rules` (`id`, `slug`, `field_id`, `rule_type`, `num_value`, `cat_values`, `is_active`, `updated_at`) VALUES (130, 'griffin', 'currentRatio', 'min', 0.8, NULL, 1, '2026-05-26 09:12:34');
 
--- ── screener_saved_filters (2 rows) ────────────────────────────────────────
+-- ── screener_saved_filters (2 rows) ----------------------------------------
+CREATE TABLE IF NOT EXISTS `screener_saved_filters` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `filter_json` text NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name` (`name`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 TRUNCATE TABLE `screener_saved_filters`;
 INSERT INTO `screener_saved_filters` (`id`, `name`, `filter_json`, `created_at`, `updated_at`) VALUES (1, 'Test', '{"numeric": {"marketCap": {"min": 20000000}, "returnOnEquity": {"min": 15}, "revenueGrowth": {"min": 20}}, "categorical": {}}', '2026-05-28 09:13:36', '2026-05-28 09:13:36');
 INSERT INTO `screener_saved_filters` (`id`, `name`, `filter_json`, `created_at`, `updated_at`) VALUES (2, 'ChatGPT', '{"numeric": {"trailingPE": {"max": 15}, "enterpriseToEbitda": {"max": 10}, "returnOnEquity": {"min": 15}, "revenueGrowth": {"min": 10}, "debtToEquity": {"max": 50}, "freeCashflow": {"min": 1}, "operatingMargins": {"min": 15}, "averageVolume": {"min": 500000}, "marketCap": {"min": 1000000000}}, "categorical": {}}', '2026-05-28 11:25:14', '2026-05-28 11:25:14');
 
--- ── vol_trades (6 rows) ────────────────────────────────────────
+-- ── vol_trades (6 rows) ----------------------------------------
+CREATE TABLE IF NOT EXISTS `vol_trades` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `trade_date` date NOT NULL,
+  `ticker` varchar(20) NOT NULL,
+  `buy_time` datetime DEFAULT NULL,
+  `buy_price` float DEFAULT NULL,
+  `amount_usd` float NOT NULL DEFAULT '1000',
+  `sell_time` datetime DEFAULT NULL,
+  `sell_price` float DEFAULT NULL,
+  `pnl_dollar` float DEFAULT NULL,
+  `pnl_pct` float DEFAULT NULL,
+  `status` enum('open','sold') NOT NULL DEFAULT 'open',
+  PRIMARY KEY (`id`),
+  KEY `idx_date` (`trade_date`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 TRUNCATE TABLE `vol_trades`;
 INSERT INTO `vol_trades` (`id`, `trade_date`, `ticker`, `buy_time`, `buy_price`, `amount_usd`, `sell_time`, `sell_price`, `pnl_dollar`, `pnl_pct`, `status`) VALUES (1, '2026-05-28', 'DLTR', '2026-05-28 10:05:00', 112.65, 1000.0, '2026-05-28 14:01:54', 113.62, 8.61, 0.86, 'sold');
 INSERT INTO `vol_trades` (`id`, `trade_date`, `ticker`, `buy_time`, `buy_price`, `amount_usd`, `sell_time`, `sell_price`, `pnl_dollar`, `pnl_pct`, `status`) VALUES (2, '2026-05-28', 'BBY', '2026-05-28 10:05:00', 75.76, 1000.0, '2026-05-28 14:01:54', 76.4, 8.45, 0.84, 'sold');
@@ -659,7 +893,14 @@ INSERT INTO `vol_trades` (`id`, `trade_date`, `ticker`, `buy_time`, `buy_price`,
 INSERT INTO `vol_trades` (`id`, `trade_date`, `ticker`, `buy_time`, `buy_price`, `amount_usd`, `sell_time`, `sell_price`, `pnl_dollar`, `pnl_pct`, `status`) VALUES (5, '2026-05-29', 'NTAP', '2026-05-29 10:02:16', 189.5, 1000.0, '2026-05-29 14:00:17', 179.87, -50.82, -5.08, 'sold');
 INSERT INTO `vol_trades` (`id`, `trade_date`, `ticker`, `buy_time`, `buy_price`, `amount_usd`, `sell_time`, `sell_price`, `pnl_dollar`, `pnl_pct`, `status`) VALUES (6, '2026-05-29', 'SMCI', '2026-05-29 10:02:16', 47.88, 1000.0, '2026-05-29 14:00:17', 45.4251, -51.27, -5.13, 'sold');
 
--- ── guru_filing_meta (39 rows) ────────────────────────────────────────
+-- ── guru_filing_meta (39 rows) ----------------------------------------
+CREATE TABLE IF NOT EXISTS `guru_filing_meta` (
+  `slug` varchar(50) NOT NULL,
+  `filing_date` date NOT NULL,
+  `fetched_at` datetime NOT NULL,
+  `source` varchar(20) NOT NULL DEFAULT '13f',
+  PRIMARY KEY (`slug`,`filing_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 TRUNCATE TABLE `guru_filing_meta`;
 INSERT INTO `guru_filing_meta` (`slug`, `filing_date`, `fetched_at`, `source`) VALUES ('ackman', '2026-02-17', '2026-05-27 03:49:05', '13f');
 INSERT INTO `guru_filing_meta` (`slug`, `filing_date`, `fetched_at`, `source`) VALUES ('ackman', '2026-05-15', '2026-05-28 22:40:14', '13f');
@@ -701,7 +942,23 @@ INSERT INTO `guru_filing_meta` (`slug`, `filing_date`, `fetched_at`, `source`) V
 INSERT INTO `guru_filing_meta` (`slug`, `filing_date`, `fetched_at`, `source`) VALUES ('tepper', '2026-05-15', '2026-05-28 22:40:16', '13f');
 INSERT INTO `guru_filing_meta` (`slug`, `filing_date`, `fetched_at`, `source`) VALUES ('tomlee', '2026-01-31', '2026-05-28 22:40:24', 'nport');
 
--- ── guru_holdings (5321 rows) ────────────────────────────────────────
+-- ── guru_holdings (5321 rows) ----------------------------------------
+CREATE TABLE IF NOT EXISTS `guru_holdings` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `slug` varchar(50) NOT NULL,
+  `filing_date` date NOT NULL,
+  `name` varchar(500) NOT NULL,
+  `cusip` varchar(20) DEFAULT NULL,
+  `ticker` varchar(20) DEFAULT NULL,
+  `put_call` varchar(10) NOT NULL DEFAULT '',
+  `value` bigint NOT NULL,
+  `shares` bigint NOT NULL DEFAULT '0',
+  `weight` float DEFAULT NULL,
+  `change_tag` varchar(20) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_slug` (`slug`),
+  KEY `idx_slug_date` (`slug`,`filing_date`)
+) ENGINE=InnoDB AUTO_INCREMENT=8845 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 TRUNCATE TABLE `guru_holdings`;
 INSERT INTO `guru_holdings` (`id`, `slug`, `filing_date`, `name`, `cusip`, `ticker`, `put_call`, `value`, `shares`, `weight`, `change_tag`) VALUES (1922, 'buffett', '2026-02-17', 'APPLE INC', '037833100', 'AAPL', '', 61961735283, 227917808, 22.6, NULL);
 INSERT INTO `guru_holdings` (`id`, `slug`, `filing_date`, `name`, `cusip`, `ticker`, `put_call`, `value`, `shares`, `weight`, `change_tag`) VALUES (1923, 'buffett', '2026-02-17', 'AMERICAN EXPRESS CO', '025816109', 'AXP', '', 56088378465, 151610700, 20.46, NULL);
@@ -6025,7 +6282,23 @@ INSERT INTO `guru_holdings` (`id`, `slug`, `filing_date`, `name`, `cusip`, `tick
 INSERT INTO `guru_holdings` (`id`, `slug`, `filing_date`, `name`, `cusip`, `ticker`, `put_call`, `value`, `shares`, `weight`, `change_tag`) VALUES (8843, 'tomlee', '2026-01-31', 'Strategy Inc', NULL, 'MSTR', '', 72566832, 484716, 1.69, NULL);
 INSERT INTO `guru_holdings` (`id`, `slug`, `filing_date`, `name`, `cusip`, `ticker`, `put_call`, `value`, `shares`, `weight`, `change_tag`) VALUES (8844, 'tomlee', '2026-01-31', 'First American Government Obli', NULL, 'FGXXX', '', 55148263, 55148263, 1.28, NULL);
 
--- ── sentiment_scores (58 rows) ────────────────────────────────────────
+-- ── sentiment_scores (58 rows) ----------------------------------------
+CREATE TABLE IF NOT EXISTS `sentiment_scores` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `ticker` varchar(20) NOT NULL,
+  `score_date` date NOT NULL,
+  `score` float NOT NULL,
+  `stocktwits_score` float DEFAULT NULL,
+  `reddit_score` float DEFAULT NULL,
+  `volume_spike` float DEFAULT NULL,
+  `momentum` float DEFAULT NULL,
+  `post_count` int NOT NULL DEFAULT '0',
+  `classification` varchar(20) DEFAULT NULL,
+  `computed_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_ticker_date` (`ticker`,`score_date`),
+  KEY `idx_score_date` (`score_date`)
+) ENGINE=InnoDB AUTO_INCREMENT=161 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 TRUNCATE TABLE `sentiment_scores`;
 INSERT INTO `sentiment_scores` (`id`, `ticker`, `score_date`, `score`, `stocktwits_score`, `reddit_score`, `volume_spike`, `momentum`, `post_count`, `classification`, `computed_at`) VALUES (1, 'AMZN', '2026-05-29', 57.0, 41.2, 50.0, 92.0, 50.0, 26, 'Neutral', '2026-05-29 12:29:58');
 INSERT INTO `sentiment_scores` (`id`, `ticker`, `score_date`, `score`, `stocktwits_score`, `reddit_score`, `volume_spike`, `momentum`, `post_count`, `classification`, `computed_at`) VALUES (2, 'MU', '2026-05-29', 59.9, 49.3, 50.0, 86.0, 50.0, 23, 'Neutral', '2026-05-29 12:29:52');

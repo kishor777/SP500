@@ -75,7 +75,17 @@ def backup(output_path: Path | None = None):
             cols = conn.execute(text(f"DESCRIBE `{table}`")).fetchall()
             col_names = [c[0] for c in cols]
 
-            lines.append(f"-- ── {table} ({len(rows)} rows) " + "─" * 40)
+            # Get CREATE TABLE DDL so restore works on an empty database
+            create_row = conn.execute(text(f"SHOW CREATE TABLE `{table}`")).fetchone()
+            create_ddl = create_row[1] if create_row else None
+
+            lines.append(f"-- ── {table} ({len(rows)} rows) " + "-" * 40)
+            if create_ddl:
+                # Convert to CREATE TABLE IF NOT EXISTS
+                create_ddl = create_ddl.replace(
+                    "CREATE TABLE ", "CREATE TABLE IF NOT EXISTS ", 1
+                )
+                lines.append(create_ddl + ";")
             lines.append(f"TRUNCATE TABLE `{table}`;")
 
             for row in rows:
