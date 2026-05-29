@@ -535,15 +535,7 @@ def _price_refresh_loop():
             _last_refresh["status"] = "error"
             print(f"[refresh] error: {_ex}")
 
-_refresh_thread = threading.Thread(target=_price_refresh_loop, daemon=True, name="price-refresh")
-_refresh_thread.start()
-
-_backfill_thread = threading.Thread(target=_intraday_backfill, daemon=True, name="intraday-backfill")
-_backfill_thread.start()
-
-_hist_backfill_thread = threading.Thread(target=_history_backfill_2y, daemon=True, name="hist-backfill-2y")
-_hist_backfill_thread.start()
-
+# ── Create all tables FIRST, then start background threads ───────────────────
 try:
     create_guru_tables()
     migrate_guru_tables()
@@ -552,7 +544,20 @@ try:
     create_vol_trades_table()
     create_sentiment_table()
 except Exception as _e:
-    print(f"Could not create/migrate guru tables: {_e}")
+    print(f"Could not create/migrate tables: {_e}")
+
+# Price refresh starts immediately; backfills are staggered so they don't
+# hammer yfinance and memory simultaneously on a cold start.
+_refresh_thread = threading.Thread(target=_price_refresh_loop, daemon=True, name="price-refresh")
+_refresh_thread.start()
+
+def _delayed_backfill():
+    time.sleep(10)                  # let gunicorn fully boot first
+    _intraday_backfill()
+    _history_backfill_2y()          # runs after intraday finishes
+
+_backfill_thread = threading.Thread(target=_delayed_backfill, daemon=True, name="backfill")
+_backfill_thread.start()
 
 
 def clean(val):
