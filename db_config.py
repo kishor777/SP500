@@ -1,6 +1,6 @@
 """MySQL connection config — credentials from .env (local) or Railway env vars (cloud)."""
 import os
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlparse
 from sqlalchemy import create_engine, text
 from sqlalchemy.pool import QueuePool
 
@@ -11,7 +11,8 @@ try:
 except ImportError:
     pass
 
-# Support both local .env names and Railway's auto-injected MySQL plugin names
+_ON_RAILWAY = bool(os.getenv("RAILWAY_ENVIRONMENT"))
+
 def _env(*keys, default=""):
     for k in keys:
         v = os.getenv(k)
@@ -19,15 +20,30 @@ def _env(*keys, default=""):
             return v
     return default
 
-_ON_RAILWAY = bool(os.getenv("RAILWAY_ENVIRONMENT"))
+# ── Parse Railway MYSQL_URL if present (most reliable on Railway) ─────────────
+# Railway provides MYSQL_URL = mysql://user:pass@host:port/db
+_MYSQL_URL = _env("MYSQL_URL", "MYSQL_PRIVATE_URL", "DATABASE_URL")
 
-DB = {
-    "host":     _env("DB_HOST", "MYSQLHOST",     default="localhost"),
-    "port":     int(_env("DB_PORT", "MYSQLPORT", default="3306")),
-    "user":     _env("DB_USER", "MYSQLUSER",     default="root"),
-    "password": _env("DB_PASSWORD", "MYSQLPASSWORD", default=""),
-    "database": _env("DB_NAME", "MYSQLDATABASE", default="sp500"),
-}
+if _MYSQL_URL and "mysql" in _MYSQL_URL:
+    _p = urlparse(_MYSQL_URL.replace("mysql://", "http://", 1))
+    DB = {
+        "host":     _p.hostname or "localhost",
+        "port":     _p.port    or 3306,
+        "user":     _p.username or "root",
+        "password": _p.password or "",
+        "database": (_p.path or "/sp500").lstrip("/"),
+    }
+    print(f"[db] Using MYSQL_URL → {DB['host']}:{DB['port']}/{DB['database']}")
+else:
+    # Fall back to individual env vars (local .env or manually set Railway vars)
+    DB = {
+        "host":     _env("DB_HOST", "MYSQLHOST",     default="localhost"),
+        "port":     int(_env("DB_PORT", "MYSQLPORT", default="3306")),
+        "user":     _env("DB_USER", "MYSQLUSER",     default="root"),
+        "password": _env("DB_PASSWORD", "MYSQLPASSWORD", default=""),
+        "database": _env("DB_NAME", "MYSQLDATABASE", default="sp500"),
+    }
+    print(f"[db] Using individual vars → {DB['host']}:{DB['port']}/{DB['database']}")
 
 _engine = None
 
@@ -36,7 +52,7 @@ def get_engine():
     global _engine
     if _engine is None:
         url = (
-            f"mysql+pymysql://{DB['user']}:{quote_plus(DB['password'])}"
+            f"mysql+pymysql://{DB['user']}:{quote_plus(str(DB['password']))}"
             f"@{DB['host']}:{DB['port']}/{DB['database']}"
             f"?charset=utf8mb4"
         )
