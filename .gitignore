@@ -1,5 +1,5 @@
 # ── Credentials — NEVER commit these ──────────────────────────────────────────
-db_config.py
+# db_config.py is now committed (no hardcoded secrets — reads from .env / Railway env vars)
 
 # ── Python ─────────────────────────────────────────────────────────────────────
 __pycache__/
