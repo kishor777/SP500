@@ -1,4 +1,5 @@
 """S&P 500 info viewer — Flask backend."""
+import logging
 import math
 import re
 import time
@@ -6,6 +7,11 @@ import requests
 import urllib3
 import xml.etree.ElementTree as ET
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)  # SEC EDGAR, local dev only
+
+# Suppress verbose library logging (prevents Railway 500-logs/sec rate limit)
+for _lib in ("yfinance", "urllib3", "requests", "sqlalchemy",
+             "peewee", "apscheduler", "PIL", "transformers", "torch"):
+    logging.getLogger(_lib).setLevel(logging.WARNING)
 import numpy as np
 import pandas as pd
 from flask import Flask, jsonify, render_template_string, request
