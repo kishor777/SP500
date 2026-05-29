@@ -22,6 +22,9 @@ junk/
 stock_data_parameters
 *.csv
 
+# ── Backups (committed to git as data backup) ─────────────────────────────────
+# backups/ is intentionally tracked — do NOT add it here
+
 # ── Utility / scratch scripts (not part of the app) ───────────────────────────
 backfill_q4_2025.py
 check_guru.py
