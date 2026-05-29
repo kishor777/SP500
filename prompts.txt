@@ -1,0 +1,199 @@
+Prompts used to build the S&P 500 / Guru Investing application
+================================================================
+(Chronological order from project start)
+
+1. Build a Flask web app that shows S&P 500 stock data stored in a MySQL database.
+   The app should display a sortable table with ticker, company name, price, P/E ratio,
+   market cap, and key financial metrics. Use a dark theme UI.
+
+2. Add a stock detail popup with a candlestick price chart using lightweight-charts.
+   Show OHLCV history data from a sp500_history table in MySQL.
+
+3. Add a volume chart below the price chart that syncs scrolling with the price chart.
+
+4. Add a company info section to the stock detail popup showing fundamental data
+   organized by sections (Valuation, Profitability, Growth, Balance Sheet, etc.).
+
+5. Add a Screener page where users can filter stocks by financial metrics using
+   range sliders and dropdowns. Show matching stocks in a sortable DataTable.
+
+6. Add a Guru Investing page with tabs for Portfolio (13F holdings), Rules (investment
+   criteria), and Leaderboard. Include gurus: Buffett, Ackman, Einhorn, Burry,
+   Druckenmiller, Icahn, Dalio, Loeb, Coleman, Tom Lee, Tepper, PTJones,
+   Cathie Wood, Griffin, Mohnish Pabrai.
+
+7. Fetch 13F-HR filings from SEC EDGAR API for each guru and store holdings
+   in a guru_holdings MySQL table. Show portfolio holdings with weight, value,
+   shares, and change indicators.
+
+8. Add editable investment rules for each guru stored in a guru_rules MySQL table.
+   Allow editing min/max thresholds for numeric metrics and categorical values.
+
+9. Add a Master Guru screener that combines rules from all gurus (median thresholds,
+   requiring at least 2 gurus to agree) to find stocks meeting the consensus criteria.
+
+10. Add an Optimized Guru that uses historical price performance to automatically
+    determine the best screening rules via a greedy algorithm.
+
+11. Add a Stock Picks Leaderboard page that ranks gurus by how well their
+    screened stocks have performed (1W, 1M, 3M, 1Y price returns).
+
+12. Add 6-month (6M) price return column to the main table and screener.
+    Update the composite score weights to include 6M:
+    w1=0.05, m1=0.10, m3=0.20, m6=0.25, y1=0.40.
+
+13. Can you setup a scheduler to bring up latest rates every 5 mins.
+
+14. Great Job - Modify scheduler to check if US Stock Market is open and only
+    do refresh if it is open.
+
+15. Now that DB is implemented - is there any use of csv files?
+    [Response: CSV fallbacks can be removed since MySQL is the sole data source]
+    Yes [confirm removal of CSV fallbacks]
+
+16. I dont need strategy screen under guru investing - portfolio. Remove it.
+
+17. Remove Mohnish Pabrai from this list - he doesnt have any filings for years now.
+
+18. OK add new Gurus:
+    - Jim Simons / Renaissance Technologies (~12 days since filing)
+    - Seth Klarman / Baupost (~11 days)
+    - Howard Marks / Oaktree (~11 days)
+    - George Soros / Soros Fund Mgmt (~11 days)
+    - Philippe Laffont / Coatue (~11 days)
+    - Ken Fisher / Fisher Investments (~11 days)
+    - Brad Gerstner / Altimeter (~11 days)
+    Update for investing style and create rules to align with other Gurus.
+
+19. How often are these 13F filings refreshed?
+    [Response: Currently fetched on demand and cached 24 hours]
+    No need, 24H is good.
+
+20. Will you keep old 13F if new ones are released?
+
+21. Yes keep at least data for 2 quarters - use change column in portfolio page
+    to show if holding was reduced, increased, or maintained.
+
+22. Can you confirm if 2 quarters of 13F are available for every guru?
+
+23. OK fetch for the Q4 2025 [backfill Q4 2025 13F data for all gurus]
+
+24. Do you have historical data to create candles? What is the period between
+    data points?
+    [Response: Yes, daily OHLCV in sp500_history. 5-min intraday possible via yfinance]
+
+25. What if I want to run in every 5 mins?
+    [Response: Can store 5-min bars in sp500_intraday table and add interval toggle to charts]
+
+26. Yes implement your proposed changes keep code clean - also create a new file
+    prompts.txt with all prompts to create this code since I started creating
+    this stocks application yesterday.
+
+27. I am unsure if "Starting 60-day backfill (runs in background)…" is working -
+    help me confirm it.
+    [Diagnosed: yfinance SSL failure due to corporate proxy, fixed with custom session;
+     then found single giant transaction causing lock timeouts, rewrote to batch by
+     50 tickers with per-ticker commits]
+
+28. I am unsure if Starting 60-day backfill (runs in background)… is working -
+    help me confirm it.
+    [Confirmed backfill was running but stuck — old Flask server held MySQL lock;
+     killed blocking transaction, verified pipeline end-to-end, rewrote backfill
+     to process 503 tickers in 11 batches of 50 with per-ticker commits]
+
+29. I think no rows were downloaded - seems to be some problem can you fix it.
+
+30. Now that we have done all these changes - Make me a plan to create a
+    recommendation engine. With what I already have and what needs to be added
+    to make a great recommendation engine.
+
+31. OK Great - I like your plan with information already present make me a
+    recommendation engine on a separate page with ranking score.
+
+32. It is still not working - clicking these links dont change the score table
+    underneath. Selection shall reflect in changes in table below.
+
+33. After restart recommendation table is now empty.
+
+34. Going forward i ask you to be more considerate on changes for issues like
+    "The table is empty because the initial loadData() call got removed
+    accidentally." Application is mostly baked and code is hardly readable for
+    me to make changes. Be thoughtful and cautionary in your action and changes.
+    Lets not break it at this stage going forward.
+
+35. Add Today's Price changes as an additional column in recommendation table.
+
+38. Structured enhancement plan for long-term and day-trade recommendation engines.
+    Plan covers: 2Y history backfill, technical indicators, fundamental trend analysis,
+    intraday signals (VWAP, RSI, gap), backtesting tab, watchlist/alerts, score history.
+
+39. 2-year daily history backfill into sp500_history (same table, INSERT IGNORE for
+    overlap). Runs in background thread at startup, skips if already complete.
+    Hot-reloads hist_by_ticker on completion. Status at /api/history-backfill-status.
+
+37. Add functionality to save screener filters by name. Stored in MySQL. Custom Filters
+    section added in Screener filter panel below Guru preset. Load via dropdown, save
+    with name input + Save button, delete selected filter. Asks before overwriting.
+
+36. Create a new page with 1 week average volume, 1 month average volume, 3 month average
+    volume, todays volume, today price change, upcoming result date and column volume is
+    abnormal. Added as a tab inside the Screener page (Volume Analysis tab). Abnormal
+    defined as today volume > 2x 1M average. Volume source: sp500_intraday sum for today.
+    Earnings date from earningsTimestampStart in sp500_info.
+
+40. Rename "Today Change" column to "Change" in Recommendation page. Add the same
+    column (today's % price change via latest intraday bar vs prev daily close) to
+    the Screener page between Rev Growth and 1W columns.
+
+41. Create a Vol Trades table (paper trading). Scheduler buys Top 3 Bullish stocks
+    from Volume Analysis at first 5-min refresh at/after 10:00 AM ET ($1000 each).
+    Scheduler sells all today's open positions at first refresh at/after 2:00 PM ET.
+    New "Vol Trades" tab added to Screener page with date picker, trade table showing
+    Ticker, Buy Time, Buy Price, Amount, Sell Time, Sell Price, P&L($), P&L(%), Status.
+    Trades stored in MySQL vol_trades table.
+
+42. Remove date picker from Vol Trades tab. Replace with stats bar showing Net P&L
+    ($ and %), Daily P&L %, Weekly (5d) P&L %, Monthly (30d) P&L %, Win Rate %.
+    Profit shown in green, loss in red. Refresh button right-aligned.
+    Table now shows last 30 days of trades (newest first).
+
+43. Vol Trades stats bar: rename "Net P&L (Today)" to "Realized P&L". Move "Win Rate"
+    to second position (after Realized P&L). Rename "Daily P&L %" to "Today's P&L".
+    Fix Weekly formula to Mon–Fri of current week (WEEKDAY offset). Fix Monthly
+    formula to 1st of current month to today (MTD). Labels updated accordingly.
+
+44. Realized P&L = cumulative SUM of all pnl_dollar since inception (all sold trades,
+    no date filter). Also confirmed $1000 paper trades already use fractional shares
+    (shares = amount_usd / buy_price) — no change needed there.
+
+45. Vol Trades table showed headers but no data rows after restart (asked 4 times).
+    Root cause: DataTable destroy/reinit on a hidden panel (display:none) fails to
+    measure column widths, rendering rows invisible. Fix: initialize vtDt once in
+    $(document).ready alongside scrDt, then use vtDt.clear(); vtDt.rows.add().draw()
+    in loadVolTrades() — same proven pattern as the working screener DataTable.
+
+46. Review and optimize code to create a new baseline - also read previous prompts.txt
+    to align context window.
+    [Applied 5 targeted optimizations: removed duplicate urllib3/requests imports that
+     appeared twice at module level; pre-computed _TICKER_OVERRIDES_NORM so _match_ticker
+     no longer re-normalizes all 50 override keys on every 13F issuer lookup; moved
+     import json out of the inner categorical loop in _save_guru_rules_to_db; removed
+     pytz dependency in volume_analysis_api (uses module-level ZoneInfo _NYSE_TZ instead);
+     reused mom_rows dict in _compute_recommendations output loop to avoid ~500 redundant
+     _price_changes() calls per recommendation refresh cycle.]
+
+47. Review and optimize code to create a new baseline - also read previous prompts.txt
+    to align context window. Also confirm do i need this prompt to set correct context for you?
+    [Applied 3 more targeted optimizations: moved bisect_right and timedelta imports to
+     module level (were re-imported on every _price_changes call, ~500+ times per reco refresh);
+     hoisted _today_str = _date.today().isoformat() above the ~500-ticker output loop in
+     _compute_recommendations (was recomputed identically on every iteration).]
+
+48. Move all configuration out of sp500_viewer as a separate .cfg file referenced in sp500_viewer.
+    [Created config.py (734 lines) containing all tuneable constants and static lookup tables:
+     _NYSE_TZ, _NYSE_HOLIDAYS, SCHEDULER_CONFIG, TTL constants (_DB_GURU_TTL, _OPTIMIZED_TTL,
+     _RECO_TTL), _EDGAR_UA, TABLE_COLS, DETAIL_SECTIONS, SCREENER_NUM_GROUPS, SCREENER_CAT_FIELDS,
+     _OPT_SKIP, _OPT_PCT_FRAC, GURUS (21 entries), 13F name-matching helpers (_strip_words_re,
+     _strip_punct_re, _13F_ABBREV, _TICKER_OVERRIDES, _norm, _TICKER_OVERRIDES_NORM).
+     sp500_viewer.py reduced from 6213 → 5512 lines. Uses Python module (not INI .cfg) because
+     the data structures require Python syntax (nested dicts, sets, compiled regexes, ZoneInfo).]

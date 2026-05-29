@@ -1,0 +1,38 @@
+# ── Credentials — NEVER commit these ──────────────────────────────────────────
+db_config.py
+
+# ── Python ─────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+.env
+.venv
+venv/
+env/
+
+# ── Project-specific ───────────────────────────────────────────────────────────
+playwright_profile/
+playwright_profile_hs/
+junk/
+.claude/
+stock_data_parameters
+*.csv
+
+# ── Utility / scratch scripts (not part of the app) ───────────────────────────
+backfill_q4_2025.py
+check_guru.py
+diagnose_master.py
+optimize_rules.py
+test_mysql.py
+yahoo_finance.py
+webscrape.py
+wikipedia.py
+
+# ── OS ─────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
