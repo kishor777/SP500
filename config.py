@@ -50,10 +50,15 @@ _DB_GURU_TTL    = 86400  # seconds before DB guru cache is considered stale (24h
 _OPTIMIZED_TTL  = 3600   # recompute optimized rules once per hour
 _RECO_TTL       = 3600   # recompute recommendation engine once per hour
 
-# ── Reddit API credentials ─────────────────────────────────────────────────────
-# Create a free "script" app at https://www.reddit.com/prefs/apps
-REDDIT_CLIENT_ID     = ""   # paste your app's client_id here
-REDDIT_CLIENT_SECRET = ""   # paste your app's secret here
+# ── Reddit API credentials (set in .env — never hardcode here) ────────────────
+import os as _os
+try:
+    from dotenv import load_dotenv as _load_dotenv
+    _load_dotenv()
+except ImportError:
+    pass
+REDDIT_CLIENT_ID     = _os.getenv("REDDIT_CLIENT_ID",     "")
+REDDIT_CLIENT_SECRET = _os.getenv("REDDIT_CLIENT_SECRET", "")
 
 # ── Sentiment Engine ───────────────────────────────────────────────────────────
 
