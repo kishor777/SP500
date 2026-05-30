@@ -14,22 +14,15 @@ from sqlalchemy import text
 # Suppress SQLAlchemy WARNING-level noise (duplicate-key errors during restore, etc.)
 logging.getLogger("sqlalchemy").setLevel(logging.ERROR)
 
-# Tables that are irreplaceable (cannot be re-fetched from external APIs)
+# Tables backed up (sp500_history/intraday excluded — large, auto-backfilled on startup)
 BACKUP_TABLES = [
-    "sp500_info",         # 503 rows — needed to bootstrap app on fresh DB
+    "sp500_info",
     "guru_rules",
     "screener_saved_filters",
     "vol_trades",
     "guru_filing_meta",
-    "guru_holdings",      # can be re-fetched but slow — include for safety
+    "guru_holdings",
     "sentiment_scores",
-]
-
-# Tables deliberately excluded (large, fully re-fetchable)
-SKIP_TABLES = [
-    "sp500_info",         # Yahoo Finance — re-fetch on startup
-    "sp500_history",      # yfinance 2-year backfill
-    "sp500_intraday",     # yfinance rolling 60-day
 ]
 
 BACKUP_DIR = Path(__file__).parent / "backups"

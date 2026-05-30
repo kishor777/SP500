@@ -246,6 +246,39 @@ def create_sentiment_table():
         conn.commit()
 
 
+def create_sp500_history_table():
+    """Create sp500_history table for daily OHLCV (matches yahoo_finance.py schema)."""
+    engine = get_engine()
+    with engine.connect() as conn:
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS sp500_history (
+                ticker  VARCHAR(20) NOT NULL,
+                date    DATE        NOT NULL,
+                open    FLOAT,
+                high    FLOAT,
+                low     FLOAT,
+                close   FLOAT,
+                volume  BIGINT,
+                PRIMARY KEY (ticker, date),
+                INDEX idx_ticker (ticker)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """))
+        conn.commit()
+
+
+def create_sp500_info_table():
+    """Create a minimal sp500_info stub so the app can start and backup/restore can populate it."""
+    engine = get_engine()
+    with engine.connect() as conn:
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS sp500_info (
+                ticker VARCHAR(20) NOT NULL,
+                PRIMARY KEY (ticker)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """))
+        conn.commit()
+
+
 def ensure_database():
     """Create the database if it doesn't exist yet (run once on first use)."""
     url_no_db = (
