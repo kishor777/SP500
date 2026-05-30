@@ -83,7 +83,6 @@ def backup(output_path: Path | None = None):
                     "CREATE TABLE ", "CREATE TABLE IF NOT EXISTS ", 1
                 )
                 lines.append(create_ddl + ";")
-            lines.append(f"TRUNCATE TABLE `{table}`;")
 
             for row in rows:
                 vals = ", ".join(_quote(v) for v in row)
@@ -109,8 +108,11 @@ def restore(sql_path: str):
     skipped = 0
     with engine.connect() as conn:
         for stmt in statements:
-            # Force INSERT IGNORE so old backup files (with INSERT INTO) never raise IntegrityError
             upper = stmt.upper().lstrip()
+            # Skip TRUNCATE — we use INSERT IGNORE so truncation is unnecessary
+            if upper.startswith("TRUNCATE"):
+                continue
+            # Force INSERT IGNORE so old backup files (with INSERT INTO) never raise IntegrityError
             if upper.startswith("INSERT ") and "IGNORE" not in upper[:20]:
                 stmt = "INSERT IGNORE" + stmt[stmt.upper().index("INSERT") + 6:]
             try:
