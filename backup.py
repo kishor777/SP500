@@ -106,16 +106,25 @@ def restore(sql_path: str):
     content = Path(sql_path).read_text(encoding="utf-8")
     statements = [s.strip() for s in content.split(";\n") if s.strip() and not s.strip().startswith("--")]
     restored = 0
+    skipped = 0
     with engine.connect() as conn:
         for stmt in statements:
+            # Force INSERT IGNORE so old backup files (with INSERT INTO) never raise IntegrityError
+            upper = stmt.upper().lstrip()
+            if upper.startswith("INSERT ") and "IGNORE" not in upper[:20]:
+                stmt = "INSERT IGNORE" + stmt[stmt.upper().index("INSERT") + 6:]
             try:
                 conn.execute(text(stmt))
-                if stmt.upper().startswith("INSERT"):
+                if upper.startswith("INSERT"):
                     restored += 1
             except Exception as e:
-                print(f"  WARN: {e} — {stmt[:80]}")
+                skipped += 1
+                if skipped <= 5:
+                    print(f"  WARN: {e} — {stmt[:80]}")
+                elif skipped == 6:
+                    print("  (further WARN messages suppressed)")
         conn.commit()
-    print(f"Restore complete — {restored} rows inserted from {sql_path}")
+    print(f"Restore complete — {restored} rows inserted, {skipped} skipped from {sql_path}")
 
 
 if __name__ == "__main__":

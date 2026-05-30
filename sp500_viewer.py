@@ -20,8 +20,7 @@ from flask import Flask, jsonify, render_template_string, request
 from db_config import (get_engine, create_guru_tables, create_guru_rules_table,
                        migrate_guru_tables, create_intraday_table,
                        create_screener_filters_table, create_vol_trades_table,
-                       create_sentiment_table, create_sp500_history_table,
-                       create_sp500_info_table)
+                       create_sentiment_table, create_sp500_history_table)
 from sentiment_engine import load_all_scores, run_sentiment_pass, should_run_sentiment, sentiment_status
 from config import (
     _NYSE_TZ, _NYSE_HOLIDAYS, SCHEDULER_CONFIG,
@@ -549,7 +548,6 @@ def _price_refresh_loop():
 
 # ── Create all tables FIRST, then start background threads ───────────────────
 try:
-    create_sp500_info_table()
     create_sp500_history_table()
     create_guru_tables()
     migrate_guru_tables()

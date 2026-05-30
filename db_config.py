@@ -266,19 +266,6 @@ def create_sp500_history_table():
         conn.commit()
 
 
-def create_sp500_info_table():
-    """Create a minimal sp500_info stub so the app can start and backup/restore can populate it."""
-    engine = get_engine()
-    with engine.connect() as conn:
-        conn.execute(text("""
-            CREATE TABLE IF NOT EXISTS sp500_info (
-                ticker VARCHAR(20) NOT NULL,
-                PRIMARY KEY (ticker)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-        """))
-        conn.commit()
-
-
 def ensure_database():
     """Create the database if it doesn't exist yet (run once on first use)."""
     url_no_db = (
