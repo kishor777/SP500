@@ -10,7 +10,8 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)  # SEC EDGAR
 
 # Suppress verbose library logging (prevents Railway 500-logs/sec rate limit)
 for _lib in ("yfinance", "urllib3", "requests", "sqlalchemy",
-             "peewee", "apscheduler", "PIL", "transformers", "torch"):
+             "peewee", "apscheduler", "PIL", "transformers", "torch",
+             "werkzeug"):
     logging.getLogger(_lib).setLevel(logging.WARNING)
 import numpy as np
 import pandas as pd

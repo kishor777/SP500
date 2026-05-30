@@ -107,7 +107,7 @@ def restore(sql_path: str):
     from db_config import get_engine
     engine = get_engine()
     content = Path(sql_path).read_text(encoding="utf-8")
-    statements = [s.strip() for s in content.split(";") if s.strip() and not s.strip().startswith("--")]
+    statements = [s.strip() for s in content.split(";\n") if s.strip() and not s.strip().startswith("--")]
     restored = 0
     with engine.connect() as conn:
         for stmt in statements:

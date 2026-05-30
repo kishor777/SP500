@@ -83,7 +83,6 @@ def _fetch_stocktwits(ticker: str) -> list[dict]:
             print(f"[sentiment] StockTwits {ticker}: API error {payload.get('response')} — Yahoo RSS fallback")
             return _fetch_yahoo_rss(ticker)
         messages = payload.get("messages", [])
-        print(f"[sentiment] StockTwits {ticker}: {len(messages)} raw messages")
     except Exception as e:
         print(f"[sentiment] StockTwits {ticker}: {type(e).__name__}: {e} — Yahoo RSS fallback")
         return _fetch_yahoo_rss(ticker)
@@ -142,7 +141,6 @@ def _fetch_yahoo_rss(ticker: str) -> list[dict]:
                 continue
             uid = hashlib.md5(text.encode()).hexdigest()
             posts.append({"id": uid, "text": text[:512], "source": "yahoo_rss"})
-        print(f"[sentiment] Yahoo RSS {ticker}: {len(posts)} headlines")
         return posts
     except Exception as e:
         print(f"[sentiment] Yahoo RSS {ticker}: {type(e).__name__}: {e}")
@@ -433,14 +431,16 @@ def run_sentiment_pass(tickers: list[str], engine, on_complete=None):
     def _worker():
         global _sentiment_running
         _sentiment_running = True
-        print(f"[sentiment] Pass started — {len(tickers)} tickers")
-        for ticker in tickers:
+        n = len(tickers)
+        print(f"[sentiment] Pass started — {n} tickers")
+        errors = 0
+        for i, ticker in enumerate(tickers, 1):
             try:
-                r = compute_ticker_sentiment(ticker, engine)
-                print(f"[sentiment] {ticker}: {r['score']:.1f} "
-                      f"({r['classification']}) {r['posts']} posts")
-            except Exception as e:
-                print(f"[sentiment] {ticker} error: {e}")
+                compute_ticker_sentiment(ticker, engine)
+            except Exception:
+                errors += 1
+            if i % 50 == 0 or i == n:
+                print(f"[sentiment] {i}/{n} scored ({errors} errors)")
         _sentiment_running = False
         print("[sentiment] Pass complete.")
         if on_complete:
