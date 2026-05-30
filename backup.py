@@ -4,11 +4,15 @@ Usage:
     python backup.py              # creates backups/backup_2026-05-29.sql
     python backup.py --restore backups/backup_2026-05-29.sql
 """
+import logging
 import sys
 import os
 from datetime import date
 from pathlib import Path
 from sqlalchemy import text
+
+# Suppress SQLAlchemy WARNING-level noise (duplicate-key errors during restore, etc.)
+logging.getLogger("sqlalchemy").setLevel(logging.ERROR)
 
 # Tables that are irreplaceable (cannot be re-fetched from external APIs)
 BACKUP_TABLES = [
@@ -91,7 +95,7 @@ def backup(output_path: Path | None = None):
             for row in rows:
                 vals = ", ".join(_quote(v) for v in row)
                 col_list = ", ".join(f"`{c}`" for c in col_names)
-                lines.append(f"INSERT INTO `{table}` ({col_list}) VALUES ({vals});")
+                lines.append(f"INSERT IGNORE INTO `{table}` ({col_list}) VALUES ({vals});")
 
             lines.append("")
             total_rows += len(rows)

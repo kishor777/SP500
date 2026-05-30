@@ -9,10 +9,11 @@ import xml.etree.ElementTree as ET
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)  # SEC EDGAR, local dev only
 
 # Suppress verbose library logging (prevents Railway 500-logs/sec rate limit)
-for _lib in ("yfinance", "urllib3", "requests", "sqlalchemy",
+for _lib in ("yfinance", "urllib3", "requests",
              "peewee", "apscheduler", "PIL", "transformers", "torch",
              "werkzeug"):
     logging.getLogger(_lib).setLevel(logging.WARNING)
+logging.getLogger("sqlalchemy").setLevel(logging.ERROR)
 import numpy as np
 import pandas as pd
 from flask import Flask, jsonify, render_template_string, request
