@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>S&amp;P 500 – Guru Investing</title>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; display: flex; flex-direction: column; }
+  header { background: #1a1d27; border-bottom: 1px solid #2d3148; padding: 12px 24px; display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+  header h1 { font-size: 1.25rem; font-weight: 700; color: #f8fafc; white-space: nowrap; }
+  .nav-links { display: flex; gap: 4px; }
+  .nav-link { font-size: 0.82rem; padding: 5px 14px; border-radius: 6px; text-decoration: none; color: #94a3b8; transition: background .15s, color .15s; }
+  .nav-link:hover { background: #2d3148; color: #e2e8f0; }
+  .nav-link.active { background: #3730a3; color: #fff; font-weight: 600; }
+
+  /* Guru selector bar */
+  #guru-selector-bar { background: #131620; border-bottom: 1px solid #2d3148; padding: 12px 24px; display: flex; align-items: center; gap: 14px; flex-shrink: 0; flex-wrap: wrap; }
+  #guru-selector-bar label { font-size: 0.78rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; }
+  #guru-select { background: #1a1d27; border: 1px solid #2d3148; color: #e2e8f0; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; min-width: 320px; cursor: pointer; outline: none; }
+  #guru-select:focus { border-color: #3730a3; }
+  #guru-select option, #guru-select optgroup { background: #1a1d27; color: #e2e8f0; }
+  #guru-style-pill { display: none; font-size: 0.72rem; font-weight: 700; padding: 3px 12px; border-radius: 99px; letter-spacing: .04em; text-transform: uppercase; }
+
+  /* Main layout */
+  #guru-layout { display: flex; flex: 1; overflow: hidden; }
+
+  /* Left sidebar */
+  #guru-sidebar { width: 320px; min-width: 320px; background: #131620; border-right: 1px solid #2d3148; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+  #guru-placeholder { color: #475569; font-size: 0.85rem; text-align: center; padding: 40px 0; }
+  .style-badge { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 3px 10px; border-radius: 99px; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 8px; }
+  #guru-card h2 { font-size: 1.2rem; font-weight: 700; color: #f8fafc; }
+  #guru-fund { font-size: 0.8rem; color: #64748b; margin-top: 2px; margin-bottom: 12px; }
+  #guru-quote { font-size: 0.78rem; color: #94a3b8; font-style: italic; line-height: 1.55; border-left: 3px solid #2d3148; padding-left: 10px; margin-bottom: 12px; }
+  #guru-desc { font-size: 0.8rem; color: #94a3b8; line-height: 1.6; }
+  .rules-panel { margin-top: 4px; }
+  .rules-panel h3 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: .06em; color: #64748b; margin-bottom: 10px; }
+  .rule-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #1e2235; font-size: 0.78rem; }
+  .rule-label { color: #94a3b8; }
+  .rule-value { color: #a5b4fc; font-weight: 600; font-family: monospace; font-size: 0.8rem; }
+  .cat-rule { color: #fbbf24; font-size: 0.75rem; padding: 5px 0; border-bottom: 1px solid #1e2235; }
+
+  /* Right main area */
+  #guru-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* Tabs */
+  .tab-bar { display: flex; gap: 2px; padding: 12px 20px 0; background: #0f1117; border-bottom: 1px solid #2d3148; flex-shrink: 0; }
+  .tab-btn { padding: 8px 20px; border-radius: 6px 6px 0 0; border: 1px solid transparent; background: transparent; color: #64748b; font-size: 0.85rem; cursor: pointer; transition: all .15s; }
+  .tab-btn:hover { color: #e2e8f0; background: #1a1d27; }
+  .tab-btn.active { background: #1a1d27; border-color: #2d3148 #2d3148 #1a1d27; color: #e2e8f0; font-weight: 600; }
+  .tab-badge { display: inline-block; background: #2d3148; color: #94a3b8; border-radius: 99px; font-size: 0.7rem; padding: 1px 7px; margin-left: 6px; vertical-align: middle; }
+  .tab-panel { display: none; flex: 1; overflow: auto; padding: 16px 20px; }
+  .tab-panel.active { display: flex; flex-direction: column; gap: 12px; }
+
+  /* Status bar */
+  .status-bar { font-size: 0.78rem; color: #64748b; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .status-bar .filing-info { background: #1a1d27; border: 1px solid #2d3148; border-radius: 6px; padding: 4px 12px; }
+  .overlap-info { color: #fbbf24; font-size: 0.75rem; }
+
+  /* Tables */
+  table.dataTable { border-collapse: collapse; width: 100% !important; }
+  table.dataTable thead th { background: #1a1d27; color: #94a3b8; font-size: 0.72rem; text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid #2d3148; padding: 9px 10px; cursor: pointer; }
+  table.dataTable tbody tr { border-bottom: 1px solid #1e2235; transition: background .1s; }
+  table.dataTable tbody tr:hover { background: #1a1d27; }
+  table.dataTable tbody td { padding: 8px 10px; font-size: 0.8rem; white-space: nowrap; }
+  th.num, td.num { text-align: right !important; }
+  .ticker-link { font-weight: 700; color: #818cf8; font-family: monospace; font-size: 0.88rem; cursor: pointer; text-decoration: underline dotted; }
+  .ticker-link:hover { color: #a5b4fc; }
+  .ticker-none { color: #475569; font-family: monospace; font-size: 0.82rem; }
+  .sector-tag { background: #1e2235; color: #94a3b8; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; }
+  .rec-strong-buy { color: #059669; font-weight: 700; }
+  .rec-buy { color: #34d399; font-weight: 600; }
+  .rec-hold { color: #fbbf24; font-weight: 600; }
+  .rec-sell { color: #f87171; font-weight: 600; }
+  .rec-none { color: #475569; }
+  .match-yes { color: #34d399; font-size: 0.72rem; font-weight: 700; }
+  .held-yes { background: #14532d; color: #86efac; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+  .pos-change { color: #34d399; } .neg-change { color: #f87171; }
+  .type-badge { font-size: 0.68rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+  .type-eq   { background: #1e3a5f; color: #60a5fa; }
+  .type-call { background: #14532d; color: #86efac; }
+  .type-put  { background: #450a0a; color: #fca5a5; }
+  .chg-badge { font-size: 0.7rem; font-weight: 700; padding: 2px 7px; border-radius: 4px; white-space: nowrap; }
+  .chg-new     { background: #713f12; color: #fcd34d; }
+  .chg-added   { background: #14532d; color: #4ade80; }
+  .chg-reduced { background: #450a0a; color: #f87171; }
+  .chg-held    { color: #475569; font-size: 0.72rem; }
+  .perf-panel { margin-top: 16px; border-top: 1px solid #2d3148; padding-top: 12px; }
+  .perf-panel h3 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: .06em; color: #64748b; margin-bottom: 10px; }
+  .perf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .perf-item { display: flex; flex-direction: column; gap: 2px; }
+  .perf-item label { font-size: 0.65rem; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
+  .perf-item span  { font-size: 0.88rem; font-weight: 600; color: #e2e8f0; }
+  .perf-item span.pos-change { color: #34d399; }
+  .perf-item span.neg-change { color: #f87171; }
+  .perf-days-val   { color: #94a3b8 !important; font-size: 0.82rem !important; }
+  .loading-msg { color: #64748b; font-size: 0.85rem; padding: 24px 0; text-align: center; }
+  .error-msg { color: #f87171; font-size: 0.85rem; padding: 24px 0; }
+  .dataTables_wrapper { color: #e2e8f0; }
+  .dataTables_filter, .dataTables_length { display: none; }
+  .dataTables_info { font-size: 0.75rem; color: #64748b; padding: 8px 0; }
+  table.dataTable thead .sorting::after, table.dataTable thead .sorting_asc::after,
+  table.dataTable thead .sorting_desc::after { color: #64748b; }
+  tr.guru-held { background: #0d2218 !important; }
+  tr.guru-held:hover { background: #14301f !important; }
+
+  /* Chart popup (same as main page) */
+  #hist-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 100; display: none; }
+  #hist-overlay.active { display: block; }
+  #hist-popup { position: fixed; top: 5vh; left: 50%; transform: translateX(-50%); width: 90vw; max-width: 1100px; height: 88vh; background: #1a1d27; border: 1px solid #2d3148; border-radius: 12px; z-index: 101; display: none; flex-direction: column; overflow: hidden; }
+  #hist-popup.open { display: flex; }
+  #hist-header { padding: 14px 20px; border-bottom: 1px solid #2d3148; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  #hist-title { font-size: 1.1rem; font-weight: 700; color: #f8fafc; }
+  #hist-meta { font-size: 0.78rem; color: #64748b; flex: 1; }
+  .interval-btns { display:flex; gap:4px; align-items:center; }
+  .interval-btn { background:#1a1d27; border:1px solid #2d3148; color:#94a3b8; padding:4px 12px; border-radius:6px; font-size:0.75rem; cursor:pointer; }
+  .interval-btn.active,.interval-btn:hover { background:#6366f1; border-color:#6366f1; color:#fff; }
+  #hist-close { background: none; border: 1px solid #2d3148; color: #94a3b8; border-radius: 6px; padding: 5px 12px; cursor: pointer; font-size: 0.8rem; }
+  #hist-body { display: flex; flex: 1; overflow: hidden; }
+  #hist-charts { flex: 1; display: flex; flex-direction: column; padding: 12px; gap: 8px; min-width: 0; }
+  #hist-stats { display: flex; gap: 16px; flex-shrink: 0; padding: 0 4px 4px; flex-wrap: wrap; }
+  .stat-item { font-size: 0.75rem; color: #94a3b8; } .stat-item span { color: #e2e8f0; font-weight: 600; }
+  #price-chart { flex: 3; min-height: 0; }
+  #vol-chart { flex: 1; min-height: 0; display: none; }
+  #hist-company-panel { width: 300px; min-width: 300px; border-left: 1px solid #2d3148; overflow-y: auto; background: #131620; }
+  #hist-company-divider { font-size: 0.68rem; text-transform: uppercase; letter-spacing: .06em; color: #475569; padding: 10px 14px 6px; border-bottom: 1px solid #1e2235; }
+  #hist-company { padding: 0 0 16px; }
+  .section { border-bottom: 1px solid #1e2235; }
+  .section-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 14px; cursor: pointer; font-size: 0.78rem; color: #94a3b8; font-weight: 600; }
+  .section-header:hover { background: #1a1d27; }
+  .section-chevron { font-size: 0.65rem; transition: transform .2s; }
+  .section.open .section-chevron { transform: rotate(90deg); }
+  .field-grid { display: none; grid-template-columns: 1fr; gap: 0; padding: 4px 14px 10px; }
+  .section.open .field-grid { display: grid; }
+  .field { padding: 4px 0; display: flex; flex-direction: column; gap: 2px; border-bottom: 1px solid #1a1d27; }
+  .field label { font-size: 0.65rem; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
+  .field span { font-size: 0.8rem; color: #e2e8f0; word-break: break-word; white-space: normal; }
+  .summary-text { font-size: 0.75rem; color: #94a3b8; line-height: 1.5; max-height: 100px; overflow-y: auto; }
+  .guru-sub-nav { background: #131620; border-bottom: 1px solid #2d3148; padding: 0 24px; display: flex; gap: 2px; flex-shrink: 0; }
+  .guru-sub-tab { font-size: 0.82rem; padding: 9px 18px; text-decoration: none; color: #64748b; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .15s; }
+  .guru-sub-tab:hover { color: #e2e8f0; }
+  .guru-sub-tab.active { color: #818cf8; border-bottom-color: #3730a3; font-weight: 600; }
+</style>
+</head>
+<body>
+<header>
+  <h1>S&amp;P 500 Guru Investing</h1>
+  <nav class="nav-links">
+    <a href="/" class="nav-link">Table</a>
+    <a href="/screener" class="nav-link">Screener</a>
+    <a href="/gurus" class="nav-link active">Guru Investing</a>
+    <a href="/recommendations" class="nav-link">Recommendations</a>
+  </nav>
+</header>
+<div class="guru-sub-nav">
+  <a href="/gurus" class="guru-sub-tab active">Portfolio</a>
+  <a href="/leaderboard" class="guru-sub-tab">Leaderboard</a>
+  <a href="/stock-picks" class="guru-sub-tab">Stock Picks</a>
+</div>
+
+<div id="guru-selector-bar">
+  <label for="guru-select">Investor</label>
+  <select id="guru-select">
+    <option value="">— Choose a guru investor —</option>
+  </select>
+  <span id="guru-style-pill"></span>
+</div>
+
+<div id="guru-layout">
+  <!-- Left: guru card -->
+  <aside id="guru-sidebar">
+    <div id="guru-placeholder">← Select a guru above to view their 13F holdings and investment strategy</div>
+    <div id="guru-card" style="display:none">
+      <div id="guru-style-badge" class="style-badge"></div>
+      <h2 id="guru-name"></h2>
+      <div id="guru-fund"></div>
+      <blockquote id="guru-quote"></blockquote>
+      <p id="guru-desc"></p>
+      <div class="rules-panel">
+        <h3>Investment Rules</h3>
+        <div id="guru-rules"></div>
+      </div>
+      <div class="perf-panel" id="guru-perf" style="display:none">
+        <h3>Portfolio Performance Since Filing</h3>
+        <div class="perf-grid">
+          <div class="perf-item">
+            <label>Filing Date</label>
+            <span id="perf-date" class="perf-days-val">—</span>
+          </div>
+          <div class="perf-item">
+            <label>Days Since Filing</label>
+            <span id="perf-days" class="perf-days-val">—</span>
+          </div>
+          <div class="perf-item">
+            <label>Value at Filing</label>
+            <span id="perf-filing-val">—</span>
+          </div>
+          <div class="perf-item">
+            <label>Current Est. Value</label>
+            <span id="perf-curr-val">—</span>
+          </div>
+          <div class="perf-item" style="grid-column:1/-1">
+            <label>Change Since Filing</label>
+            <span id="perf-chg" style="font-size:1.05rem">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Right: tabs -->
+  <div id="guru-main">
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="holdings">
+        Portfolio Holdings <span class="tab-badge" id="badge-holdings">—</span>
+      </button>
+    </div>
+
+    <!-- Holdings tab -->
+    <div id="tab-holdings" class="tab-panel active">
+      <div class="status-bar">
+        <span id="holdings-filing" class="filing-info">No data loaded</span>
+        <span id="holdings-overlap" class="overlap-info"></span>
+      </div>
+      <div id="holdings-msg" class="loading-msg">Select a guru above to load their latest 13F filing.</div>
+      <div id="holdings-wrap" style="display:none; overflow-x:auto;">
+        <table id="holdings-dt" style="width:100%">
+          <thead><tr>
+            <th class="num">#</th>
+            <th>Change</th>
+            <th>Type</th>
+            <th>Ticker</th>
+            <th>Company (13F Name)</th>
+            <th>Sector</th>
+            <th class="num">Position Value</th>
+            <th class="num">Weight</th>
+            <th class="num">Shares</th>
+            <th class="num">Price</th>
+            <th class="num">P/E</th>
+            <th class="num">ROE</th>
+            <th class="num">1Y Return</th>
+            <th>Rec</th>
+            <th>Rules ✓</th>
+          </tr></thead>
+          <tbody id="holdings-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Chart popup -->
+<div id="hist-overlay"></div>
+<div id="hist-popup">
+  <div id="hist-header">
+    <div id="hist-title">—</div>
+    <div id="hist-meta"></div>
+    <div class="interval-btns">
+      <button class="interval-btn active" data-interval="1d">Daily</button>
+      <button class="interval-btn" data-interval="5m">5 Min</button>
+    </div>
+    <button id="hist-close">✕ Close</button>
+  </div>
+  <div id="hist-body">
+    <div id="hist-charts">
+      <div id="hist-stats"></div>
+      <div id="price-chart"></div>
+      <div id="vol-chart"></div>
+    </div>
+    <div id="hist-company-panel">
+      <div id="hist-company-divider">Company Details</div>
+      <div id="hist-company"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<script>
+// ── Formatting helpers ─────────────────────────────────────────────────────
+function fmtCap(v) {
+  if (v == null) return '—';
+  const a = Math.abs(v);
+  if (a >= 1e12) return (v/1e12).toFixed(2) + 'T';
+  if (a >= 1e9)  return (v/1e9).toFixed(2) + 'B';
+  if (a >= 1e6)  return (v/1e6).toFixed(1) + 'M';
+  return v.toLocaleString();
+}
+function fmtPct(v, scale100) {
+  if (v == null) return '—';
+  const pct = scale100 ? v * 100 : v;
+  const cls = pct >= 0 ? 'pos-change' : 'neg-change';
+  return `<span class="${cls}">${pct.toFixed(1)}%</span>`;
+}
+function fmtNum(v, dec) {
+  if (v == null) return '—';
+  return v.toFixed(dec ?? 2);
+}
+function fmtDollar(v) {
+  if (v == null) return '—';
+  return '$' + v.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function fmtRuleValue(fmt, val) {
+  if (fmt === 'pct_frac' || fmt === 'pct_val') return val.toFixed(1) + '%';
+  if (fmt === 'dollar') return '$' + val.toLocaleString();
+  if (fmt === 'cap') return '$' + fmtCap(val);
+  return val.toLocaleString();
+}
+function recBadge(v) {
+  if (!v || v === 'none') return '<span class="rec-none">—</span>';
+  const map = {strong_buy:'Strong Buy',buy:'Buy',hold:'Hold',sell:'Sell',strong_sell:'Strong Sell'};
+  const cls = {strong_buy:'rec-strong-buy',buy:'rec-buy',hold:'rec-hold',sell:'rec-sell',strong_sell:'rec-sell'};
+  return `<span class="${cls[v]||'rec-hold'}">${map[v]||v}</span>`;
+}
+function n(v) { return v ?? ''; }
+
+// ── State ──────────────────────────────────────────────────────────────────
+let currentSlug = null;
+let _activeLoad = 0;    // incremented each load; callbacks check against this
+let holdingsTickers = new Set();
+let holdingsDt = null;
+let _guruColors = {};   // slug → color
+
+// ── Style grouping for dropdown ────────────────────────────────────────────
+const STYLE_GROUPS = [
+  { label: 'Value Investing',         styles: ['Quality Value', 'Deep Value', 'Deep Value / Contrarian', 'Activist Value', 'Dhandho Value', 'Event-Driven Value'] },
+  { label: 'Quality & Concentrated',  styles: ['Concentrated Quality'] },
+  { label: 'Growth & Momentum',       styles: ['Macro Growth', 'High-Growth Tech', 'Growth & Momentum'] },
+  { label: 'Macro / Risk Parity',     styles: ['All Weather / Risk Parity'] },
+  { label: 'Distressed & Macro',      styles: ['Distressed & Macro', 'Global Macro & Momentum'] },
+  { label: 'Disruptive Innovation',   styles: ['Disruptive Innovation'] },
+  { label: 'Quantitative / Multi-Strat', styles: ['Multi-Strategy Quantitative'] },
+];
+
+fetch('/api/guru/list').then(r => r.json()).then(list => {
+  const sel = document.getElementById('guru-select');
+  const byStyle = {};
+  list.forEach(g => {
+    _guruColors[g.slug] = g.color;
+    if (!byStyle[g.style]) byStyle[g.style] = [];
+    byStyle[g.style].push(g);
+  });
+  STYLE_GROUPS.forEach(grp => {
+    const og = document.createElement('optgroup');
+    og.label = grp.label;
+    grp.styles.forEach(style => {
+      (byStyle[style] || []).forEach(g => {
+        const opt = document.createElement('option');
+        opt.value = g.slug;
+        opt.textContent = g.name + '  –  ' + g.fund;
+        og.appendChild(opt);
+      });
+    });
+    if (og.children.length) sel.appendChild(og);
+  });
+  sel.addEventListener('change', () => {
+    const slug = sel.value;
+    if (slug) selectGuru(slug);
+  });
+  // Auto-select from ?guru= query param (e.g. clicking from leaderboard)
+  const _qGuru = new URLSearchParams(location.search).get('guru');
+  if (_qGuru) { sel.value = _qGuru; if (sel.value) selectGuru(_qGuru); }
+});
+
+function selectGuru(slug) {
+  currentSlug = slug;
+  // Update style pill
+  const pill = document.getElementById('guru-style-pill');
+  const color = _guruColors[slug] || '#3730a3';
+  pill.style.display = 'inline-block';
+  pill.style.background = color + '33';
+  pill.style.color = color;
+  pill.style.border = '1px solid ' + color + '66';
+  // pill text filled after info loads
+  loadGuru(slug);
+}
+
+// ── Load guru ──────────────────────────────────────────────────────────────
+function loadGuru(slug) {
+  const loadId = ++_activeLoad;   // cancel stale responses
+
+  // Reset UI to loading state
+  ['holdings-msg'].forEach(id => {
+    const el = document.getElementById(id);
+    el.style.display = '';
+    el.className = 'loading-msg';
+  });
+  document.getElementById('holdings-msg').textContent = 'Fetching 13F from SEC EDGAR… (may take a few seconds)';
+  document.getElementById('holdings-wrap').style.display = 'none';
+  document.getElementById('holdings-filing').textContent = 'Loading…';
+  document.getElementById('holdings-overlap').textContent = '';
+  document.getElementById('badge-holdings').textContent = '…';
+
+  // Destroy any existing DataTable immediately so there's no stale DOM
+  if (holdingsDt) { try { holdingsDt.destroy(); } catch(e) {} holdingsDt = null; }
+  document.getElementById('holdings-body').innerHTML = '';
+
+  Promise.all([
+    fetch(`/api/guru/${slug}/info`).then(r => r.json()),
+    fetch(`/api/guru/${slug}/holdings`).then(r => r.json()),
+  ]).then(([info, holdingsData]) => {
+    if (loadId !== _activeLoad) return;   // another guru was selected; discard
+    renderGuruCard(info);
+    renderPerformance(holdingsData);
+    renderHoldings(holdingsData, info);
+  }).catch(err => {
+    if (loadId !== _activeLoad) return;
+    document.getElementById('holdings-msg').textContent = 'Error: ' + err.message;
+    document.getElementById('holdings-msg').className = 'error-msg';
+  });
+}
+
+// ── Guru card ──────────────────────────────────────────────────────────────
+function renderGuruCard(info) {
+  const card = document.getElementById('guru-card');
+  card.style.display = 'block';
+  document.getElementById('guru-placeholder').style.display = 'none';
+
+  const badge = document.getElementById('guru-style-badge');
+  badge.textContent = info.style;
+  badge.style.background = info.color + '33';
+  badge.style.color = info.color;
+  badge.style.border = '1px solid ' + info.color + '66';
+  // Update selector-bar pill
+  const pill = document.getElementById('guru-style-pill');
+  pill.textContent = info.style;
+  pill.style.display = 'inline-block';
+  pill.style.background = info.color + '33';
+  pill.style.color = info.color;
+  pill.style.border = '1px solid ' + info.color + '66';
+
+  document.getElementById('guru-name').textContent = info.name;
+  document.getElementById('guru-fund').textContent = info.fund;
+  document.getElementById('guru-quote').textContent = '"' + info.quote + '"';
+  document.getElementById('guru-desc').textContent = info.description;
+
+  // Render rules
+  const rulesDiv = document.getElementById('guru-rules');
+  rulesDiv.innerHTML = '';
+  const numRules = info.rules?.numeric || {};
+  const catRules = info.rules?.categorical || {};
+  const meta = info.rule_meta || {};
+
+  for (const [fid, bounds] of Object.entries(numRules)) {
+    const m = meta[fid] || {};
+    const label = m.label || fid;
+    const fmt = m.fmt || 'num';
+    const parts = [];
+    if (bounds.min != null) parts.push('≥ ' + fmtRuleValue(fmt, bounds.min));
+    if (bounds.max != null) parts.push('≤ ' + fmtRuleValue(fmt, bounds.max));
+    const div = document.createElement('div');
+    div.className = 'rule-item';
+    div.innerHTML = `<span class="rule-label">${label}</span><span class="rule-value">${parts.join(' and ')}</span>`;
+    rulesDiv.appendChild(div);
+  }
+  for (const [fid, vals] of Object.entries(catRules)) {
+    if (!vals || !vals.length) continue;
+    const div = document.createElement('div');
+    div.className = 'cat-rule';
+    div.textContent = fid + ': ' + vals.join(', ');
+    rulesDiv.appendChild(div);
+  }
+}
+
+// ── Type / Change badge helpers ────────────────────────────────────────────
+function typeBadge(pc) {
+  const t = (pc || '').toUpperCase();
+  if (t === 'CALL') return '<span class="type-badge type-call">CALL</span>';
+  if (t === 'PUT')  return '<span class="type-badge type-put">PUT</span>';
+  return '<span class="type-badge type-eq">EQ</span>';
+}
+function changeBadge(chg) {
+  if (!chg)           return '<span style="color:#2d3148">—</span>';
+  if (chg === 'new')     return '<span class="chg-badge chg-new">★ New</span>';
+  if (chg === 'added')   return '<span class="chg-badge chg-added">▲ Added</span>';
+  if (chg === 'reduced') return '<span class="chg-badge chg-reduced">▼ Reduced</span>';
+  if (chg === 'held')    return '<span class="chg-held">Hold</span>';
+  return '<span style="color:#2d3148">—</span>';
+}
+
+// ── Portfolio performance (sidebar) ───────────────────────────────────────
+function renderPerformance(data) {
+  const panel = document.getElementById('guru-perf');
+  if (!data.filing_date) { panel.style.display = 'none'; return; }
+
+  const filingDate = new Date(data.filing_date);
+  const days = Math.floor((Date.now() - filingDate) / (1000 * 60 * 60 * 24));
+
+  document.getElementById('perf-date').textContent = data.filing_date;
+  document.getElementById('perf-days').textContent = days + (days === 1 ? ' day' : ' days');
+
+  const fv = data.filing_total_value  || 0;
+  const cv = data.current_total_value || 0;
+
+  document.getElementById('perf-filing-val').textContent = fv > 0 ? '$' + fmtCap(fv) : '—';
+  document.getElementById('perf-curr-val').textContent   = cv > 0 ? '$' + fmtCap(cv) : '—';
+
+  const chgEl = document.getElementById('perf-chg');
+  if (fv > 0 && cv > 0) {
+    const pct = (cv - fv) / fv * 100;
+    const abs = Math.abs(cv - fv);
+    chgEl.textContent = (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%  (' + (pct >= 0 ? '+' : '-') + '$' + fmtCap(abs) + ')';
+    chgEl.className = pct >= 0 ? 'pos-change' : 'neg-change';
+  } else {
+    chgEl.textContent = '—';
+    chgEl.className = '';
+  }
+
+  panel.style.display = 'block';
+}
+
+// ── Holdings table ─────────────────────────────────────────────────────────
+function renderHoldings(data, info) {
+  // Destroy before touching DOM (safety — already done in loadGuru but guard here too)
+  if (holdingsDt) { try { holdingsDt.destroy(); } catch(e) {} holdingsDt = null; }
+
+  holdingsTickers = new Set(
+    (data.holdings || []).filter(h => h.ticker).map(h => h.ticker)
+  );
+
+  const rulesNumeric = info.rules?.numeric || {};
+  const ruleMeta = info.rule_meta || {};
+
+  document.getElementById('holdings-filing').textContent =
+    data.filing_date ? 'Latest 13F: ' + data.filing_date : 'Filing date unknown';
+
+  const tbody = document.getElementById('holdings-body');
+  tbody.innerHTML = '';
+
+  if (!data.holdings || data.holdings.length === 0) {
+    const msg = document.getElementById('holdings-msg');
+    msg.textContent = 'No 13F holdings found. The fund may be below the $100M AUM threshold or filed under a different entity.';
+    msg.className = 'error-msg';
+    msg.style.display = '';
+    document.getElementById('badge-holdings').textContent = '0';
+    return;
+  }
+
+  let matchCount = 0;
+  data.holdings.forEach((h, i) => {
+    const matchesRules = passesRules(h, rulesNumeric, ruleMeta);
+    if (matchesRules) matchCount++;
+
+    const roe = h.returnOnEquity != null ? h.returnOnEquity * 100 : null;
+    const ret = h['52WeekChange']  != null ? h['52WeekChange']  * 100 : null;
+
+    const tr = document.createElement('tr');
+    if (matchesRules) tr.classList.add('guru-held');
+
+    const tickerCell = h.ticker
+      ? `<span class="ticker-link" onclick="openHistory('${h.ticker}')">${h.ticker}</span>`
+      : `<span class="ticker-none">—</span>`;
+
+    tr.innerHTML = `
+      <td class="num">${i + 1}</td>
+      <td>${changeBadge(h.change)}</td>
+      <td>${typeBadge(h.put_call)}</td>
+      <td>${tickerCell}</td>
+      <td>${h.name}</td>
+      <td>${h.sector ? `<span class="sector-tag">${h.sector}</span>` : '—'}</td>
+      <td class="num" data-order="${n(h.value)}">${'$' + fmtCap(h.value)}</td>
+      <td class="num" data-order="${n(h.weight)}">${h.weight != null ? h.weight.toFixed(2) + '%' : '—'}</td>
+      <td class="num" data-order="${n(h.shares)}">${h.shares ? h.shares.toLocaleString() : '—'}</td>
+      <td class="num" data-order="${n(h.currentPrice)}">${h.currentPrice != null ? '$' + h.currentPrice.toFixed(2) : '—'}</td>
+      <td class="num" data-order="${n(h.trailingPE)}">${h.trailingPE != null ? h.trailingPE.toFixed(1) : '—'}</td>
+      <td class="num" data-order="${n(roe)}">${roe != null ? `<span class="${roe>=0?'pos-change':'neg-change'}">${roe.toFixed(1)}%</span>` : '—'}</td>
+      <td class="num" data-order="${n(ret)}">${ret != null ? `<span class="${ret>=0?'pos-change':'neg-change'}">${ret.toFixed(1)}%</span>` : '—'}</td>
+      <td>${recBadge(h.recommendationKey)}</td>
+      <td>${matchesRules ? '<span class="match-yes">✓ All Rules</span>' : '<span style="color:#475569;font-size:0.72rem">—</span>'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  holdingsDt = $('#holdings-dt').DataTable({
+    paging: false, dom: 'ti', order: [[6, 'desc']],
+    columnDefs: [
+      { targets: [6,7,8,9,10,11,12], type: 'num' },
+      { orderable: false, targets: [1,2] },
+    ]
+  });
+
+  document.getElementById('holdings-msg').style.display = 'none';
+  document.getElementById('holdings-wrap').style.display = 'block';
+  document.getElementById('badge-holdings').textContent = data.holdings.length;
+  document.getElementById('holdings-overlap').textContent =
+    matchCount > 0 ? `${matchCount} holding${matchCount>1?'s':''} match all investment rules` : '';
+}
+
+
+// ── Rule checker (client-side, for holdings "match" column) ────────────────
+function passesRules(holding, numericRules, ruleMeta) {
+  for (const [fid, bounds] of Object.entries(numericRules)) {
+    const raw = holding[fid];
+    if (raw == null) return false;
+    const fmt = (ruleMeta[fid] || {}).fmt || 'num';
+    const displayVal = fmt === 'pct_frac' ? raw * 100 : raw;
+    if (bounds.min != null && displayVal < bounds.min) return false;
+    if (bounds.max != null && displayVal > bounds.max) return false;
+  }
+  return true;
+}
+
+// ── Tab switching ──────────────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'holdings' && holdingsDt) holdingsDt.columns.adjust().draw();
+  });
+});
+
+// ── Chart popup ──────────────────────────────────────────────────────────
+let priceChart = null, volChart = null, priceSeries = null, volSeries = null;
+let _histTicker = null;
+
+function openHistory(ticker) {
+  _histTicker = ticker;
+  document.getElementById('hist-title').textContent = ticker;
+  document.getElementById('hist-meta').textContent = 'Loading…';
+  document.getElementById('hist-stats').innerHTML = '';
+  document.getElementById('hist-company').innerHTML = '<div style="padding:16px;color:#64748b;font-size:0.8rem">Loading…</div>';
+  document.querySelectorAll('.interval-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.interval-btn[data-interval="1d"]').classList.add('active');
+  document.getElementById('hist-popup').classList.add('open');
+  document.getElementById('hist-overlay').classList.add('active');
+  fetch(`/api/company/${ticker}`).then(r => r.json()).then(renderCompanyPanel).catch(() => {});
+  _loadHistChart(ticker, '1d');
+}
+
+function _loadHistChart(ticker, interval) {
+  document.getElementById('hist-meta').textContent = 'Loading…';
+  fetch(`/api/history/${ticker}?interval=${interval}`)
+    .then(r => r.json())
+    .then(data => _renderHistChart(data, interval))
+    .catch(err => { document.getElementById('hist-meta').textContent = 'Error: ' + err.message; });
+}
+
+function _renderHistChart(data, interval) {
+  const rows = Array.isArray(data) ? data : (data.rows || []);
+  if (!rows.length) { document.getElementById('hist-meta').textContent = 'No data'; return; }
+  if (interval !== '5m') {
+    const high = Math.max(...rows.map(r => r.high)), low = Math.min(...rows.map(r => r.low)), last = rows[rows.length-1];
+    document.getElementById('hist-meta').textContent = `${rows.length} trading days  ·  ${rows[0].time} → ${rows[rows.length-1].time}`;
+    document.getElementById('hist-stats').innerHTML = `
+      <div class="stat-item">Last Close <span>$${last.close.toFixed(2)}</span></div>
+      <div class="stat-item">52W High <span>$${high.toFixed(2)}</span></div>
+      <div class="stat-item">52W Low <span>$${low.toFixed(2)}</span></div>
+      <div class="stat-item">Last Volume <span>${(last.volume/1e6).toFixed(2)}M</span></div>`;
+  } else {
+    document.getElementById('hist-meta').textContent = `${rows.length} bars (5 min)`;
+    document.getElementById('hist-stats').innerHTML = '';
+  }
+  const pEl = document.getElementById('price-chart'), vEl = document.getElementById('vol-chart');
+  pEl.innerHTML = ''; vEl.innerHTML = ''; vEl.style.display = 'block';
+  if (priceChart) { priceChart.remove(); priceChart = null; }
+  if (volChart)   { volChart.remove();   volChart = null; }
+  const opts = { autoSize: true, layout: { background: { color: '#1a1d27' }, textColor: '#94a3b8' }, grid: { vertLines: { color: '#1e2235' }, horzLines: { color: '#1e2235' } }, timeScale: { borderColor: '#2d3148', timeVisible: true }, rightPriceScale: { borderColor: '#2d3148' } };
+  priceChart = LightweightCharts.createChart(pEl, opts);
+  priceSeries = priceChart.addCandlestickSeries({ upColor: '#34d399', downColor: '#f87171', borderUpColor: '#34d399', borderDownColor: '#f87171', wickUpColor: '#34d399', wickDownColor: '#f87171' });
+  priceSeries.setData(rows.map(r => ({ time:r.time, open:r.open, high:r.high, low:r.low, close:r.close })));
+  priceChart.timeScale().fitContent();
+  volChart = LightweightCharts.createChart(vEl, opts);
+  volSeries = volChart.addHistogramSeries({ color: '#3730a3', priceFormat: { type: 'volume' } });
+  volSeries.setData(rows.map((r, i) => ({ time: r.time, value: r.volume, color: i > 0 && r.close >= rows[i-1].close ? '#34d39966' : '#f8717166' })));
+  volChart.timeScale().fitContent();
+  priceChart.timeScale().subscribeVisibleLogicalRangeChange(range => { if (range) volChart.timeScale().setVisibleLogicalRange(range); });
+  volChart.timeScale().subscribeVisibleLogicalRangeChange(range => { if (range) priceChart.timeScale().setVisibleLogicalRange(range); });
+}
+
+function renderCompanyPanel(data) {
+  const container = document.getElementById('hist-company');
+  container.innerHTML = '';
+  if (!data || !data.sections) return;
+  for (const [sectionName, fields] of Object.entries(data.sections)) {
+    if (!fields || Object.keys(fields).length === 0) continue;
+    const sec = document.createElement('div'); sec.className = 'section';
+    sec.innerHTML = `<div class="section-header"><span>${sectionName}</span><span class="section-chevron">▶</span></div>`;
+    const grid = document.createElement('div'); grid.className = 'field-grid';
+    for (const [key, val] of Object.entries(fields)) {
+      const fEl = document.createElement('div'); fEl.className = 'field';
+      const displayVal = (val == null) ? '—' : (typeof val === 'object' ? JSON.stringify(val) : (key.toLowerCase().includes('summary') ? `<div class="summary-text">${String(val)}</div>` : String(val)));
+      fEl.innerHTML = `<label>${key}</label><span>${displayVal}</span>`;
+      grid.appendChild(fEl);
+    }
+    sec.appendChild(grid);
+    sec.querySelector('.section-header').addEventListener('click', () => sec.classList.toggle('open'));
+    container.appendChild(sec);
+  }
+}
+
+document.querySelectorAll('.interval-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.interval-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (_histTicker) _loadHistChart(_histTicker, btn.dataset.interval);
+  });
+});
+
+function closeHistory() {
+  document.getElementById('hist-popup').classList.remove('open');
+  document.getElementById('hist-overlay').classList.remove('active');
+}
+document.getElementById('hist-close').addEventListener('click', closeHistory);
+document.getElementById('hist-overlay').addEventListener('click', closeHistory);
+</script>
+</body>
+</html>

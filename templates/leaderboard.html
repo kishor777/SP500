@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>S&amp;P 500 – Guru Leaderboard</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; display: flex; flex-direction: column; }
+  header { background: #1a1d27; border-bottom: 1px solid #2d3148; padding: 12px 24px; display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+  header h1 { font-size: 1.25rem; font-weight: 700; color: #f8fafc; white-space: nowrap; }
+  .nav-links { display: flex; gap: 4px; }
+  .nav-link { font-size: 0.82rem; padding: 5px 14px; border-radius: 6px; text-decoration: none; color: #94a3b8; transition: background .15s, color .15s; }
+  .nav-link:hover { background: #2d3148; color: #e2e8f0; }
+  .nav-link.active { background: #3730a3; color: #fff; font-weight: 600; }
+
+  #page-wrap { flex: 1; padding: 24px; max-width: 1300px; width: 100%; margin: 0 auto; }
+  .page-title { font-size: 1.4rem; font-weight: 700; color: #f8fafc; margin-bottom: 4px; }
+  .page-sub { font-size: 0.82rem; color: #64748b; margin-bottom: 20px; }
+
+  #progress-wrap { background: #1a1d27; border: 1px solid #2d3148; border-radius: 8px; padding: 10px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; }
+  #progress-label { font-size: 0.8rem; color: #94a3b8; white-space: nowrap; min-width: 200px; }
+  #progress-bar-track { flex: 1; height: 6px; background: #2d3148; border-radius: 3px; overflow: hidden; }
+  #progress-bar-fill { height: 100%; width: 0%; background: #3730a3; border-radius: 3px; transition: width .3s ease; }
+  #progress-done { font-size: 0.78rem; color: #34d399; white-space: nowrap; min-width: 80px; text-align: right; }
+
+  .table-wrap { background: #131620; border: 1px solid #2d3148; border-radius: 10px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { background: #1a1d27; color: #64748b; font-size: 0.72rem; text-transform: uppercase; letter-spacing: .06em; padding: 11px 14px; border-bottom: 1px solid #2d3148; white-space: nowrap; }
+  thead th.sortable { cursor: pointer; user-select: none; }
+  thead th.sortable:hover { color: #e2e8f0; }
+  thead th.sort-asc::after { content: ' ↑'; color: #818cf8; }
+  thead th.sort-desc::after { content: ' ↓'; color: #818cf8; }
+  thead th.num { text-align: right; }
+  tbody tr { border-bottom: 1px solid #1e2235; transition: background .1s; cursor: pointer; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #1a1d27; }
+  tbody td { padding: 12px 14px; font-size: 0.83rem; white-space: nowrap; }
+  td.num { text-align: right; }
+
+  .rank-cell { font-size: 1.05rem; font-weight: 700; color: #3730a3; width: 44px; text-align: center !important; }
+  .rank-1 { color: #f59e0b; }
+  .rank-2 { color: #94a3b8; }
+  .rank-3 { color: #cd7c2f; }
+
+  .guru-name { font-weight: 700; color: #f8fafc; font-size: 0.88rem; }
+  .guru-fund { font-size: 0.72rem; color: #64748b; margin-top: 2px; }
+  .style-pill { display: inline-block; font-size: 0.65rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+
+  .pos-change { color: #34d399; font-weight: 700; }
+  .neg-change { color: #f87171; font-weight: 700; }
+  .change-bar-wrap { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+  .change-bar { height: 4px; border-radius: 2px; }
+  .change-bar.pos { background: #34d399; }
+  .change-bar.neg { background: #f87171; }
+
+  .na-cell { color: #2d3148; }
+  .skeleton { display: inline-block; background: #1e2235; border-radius: 4px; height: 12px; vertical-align: middle; animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: .3; } 50% { opacity: .8; } }
+  .loading-row td { color: #475569; text-align: center; padding: 32px; font-size: 0.85rem; }
+  .guru-sub-nav { background: #131620; border-bottom: 1px solid #2d3148; padding: 0 24px; display: flex; gap: 2px; flex-shrink: 0; }
+  .guru-sub-tab { font-size: 0.82rem; padding: 9px 18px; text-decoration: none; color: #64748b; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .15s; }
+  .guru-sub-tab:hover { color: #e2e8f0; }
+  .guru-sub-tab.active { color: #818cf8; border-bottom-color: #3730a3; font-weight: 600; }
+</style>
+</head>
+<body>
+<header>
+  <h1>S&amp;P 500 Guru Investing</h1>
+  <nav class="nav-links">
+    <a href="/" class="nav-link">Table</a>
+    <a href="/screener" class="nav-link">Screener</a>
+    <a href="/gurus" class="nav-link active">Guru Investing</a>
+    <a href="/recommendations" class="nav-link">Recommendations</a>
+  </nav>
+</header>
+<div class="guru-sub-nav">
+  <a href="/gurus" class="guru-sub-tab">Portfolio</a>
+  <a href="/leaderboard" class="guru-sub-tab active">Leaderboard</a>
+  <a href="/stock-picks" class="guru-sub-tab">Stock Picks</a>
+</div>
+
+<div id="page-wrap">
+  <h2 class="page-title">Guru Portfolio Leaderboard</h2>
+  <p class="page-sub">Ranked by estimated portfolio return since last 13F filing date. Calculated as shares held × current price vs reported value at filing.</p>
+
+  <div id="progress-wrap">
+    <div id="progress-label">Fetching portfolios from SEC EDGAR…  0 / 0</div>
+    <div id="progress-bar-track"><div id="progress-bar-fill"></div></div>
+    <div id="progress-done"></div>
+  </div>
+
+  <div class="table-wrap">
+    <table id="lb-table">
+      <thead>
+        <tr>
+          <th style="width:52px;text-align:center">#</th>
+          <th>Investor</th>
+          <th>Style</th>
+          <th class="num sortable" data-sort="filing_date">Filing Date</th>
+          <th class="num sortable" data-sort="days">Days Since</th>
+          <th class="num sortable" data-sort="filing_val">Value at Filing</th>
+          <th class="num sortable" data-sort="curr_val">Current Est.</th>
+          <th class="num sortable" data-sort="chg_abs">Change $</th>
+          <th class="num sortable sort-desc" data-sort="chg_pct">Change %</th>
+        </tr>
+      </thead>
+      <tbody id="lb-body">
+        <tr class="loading-row"><td colspan="9">Loading guru portfolios…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+let rows = [];
+let total = 0, done = 0;
+let sortCol = 'chg_pct', sortDir = -1;
+
+function fmtCap(v) {
+  if (v == null || v === 0) return '—';
+  const a = Math.abs(v);
+  if (a >= 1e12) return '$' + (v/1e12).toFixed(2) + 'T';
+  if (a >= 1e9)  return '$' + (v/1e9).toFixed(2) + 'B';
+  if (a >= 1e6)  return '$' + (v/1e6).toFixed(1) + 'M';
+  return '$' + v.toLocaleString();
+}
+
+function updateProgress() {
+  const pct = total > 0 ? done / total * 100 : 0;
+  document.getElementById('progress-bar-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent =
+    done < total ? `Fetching portfolios from SEC EDGAR…  ${done} / ${total}` : `All ${total} guru portfolios loaded`;
+  document.getElementById('progress-done').textContent = done === total && total > 0 ? '✓ Done' : '';
+}
+
+function getMaxAbsPct() {
+  let m = 0;
+  for (const r of rows) if (r.chg_pct != null) m = Math.max(m, Math.abs(r.chg_pct));
+  return m || 1;
+}
+
+function sortRows() {
+  const col = sortCol;
+  rows.sort((a, b) => {
+    const av = a[col], bv = b[col];
+    if (av == null && bv == null) return 0;
+    if (av == null) return 1;
+    if (bv == null) return -1;
+    if (typeof av === 'string') return sortDir * av.localeCompare(bv);
+    return sortDir * (av - bv);
+  });
+}
+
+function skel(w) { return `<span class="skeleton" style="width:${w}px">&nbsp;</span>`; }
+
+function renderTable() {
+  sortRows();
+  const maxPct = getMaxAbsPct();
+  const tbody = document.getElementById('lb-body');
+  tbody.innerHTML = '';
+
+  rows.forEach((r, i) => {
+    const rank = i + 1;
+    const rankLabel = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+    const rankCls = rank <= 3 ? 'rank-' + rank : '';
+
+    const stylePill = `<span class="style-pill" style="background:${r.color}22;color:${r.color};border:1px solid ${r.color}55">${r.style}</span>`;
+
+    let chgPctHtml, chgAbsHtml, filingValHtml, currValHtml;
+    if (!r.loaded) {
+      chgPctHtml  = skel(64);
+      chgAbsHtml  = skel(56);
+      filingValHtml = skel(56);
+      currValHtml   = skel(56);
+    } else {
+      filingValHtml = r.filing_val ? fmtCap(r.filing_val) : '<span class="na-cell">N/A</span>';
+      currValHtml   = r.curr_val   ? fmtCap(r.curr_val)   : '<span class="na-cell">N/A</span>';
+      if (r.chg_pct != null) {
+        const cls  = r.chg_pct >= 0 ? 'pos-change' : 'neg-change';
+        const barW = Math.round(Math.abs(r.chg_pct) / maxPct * 56 + 4);
+        const sign = r.chg_pct >= 0 ? '+' : '';
+        chgPctHtml = `<div class="change-bar-wrap">
+          <div class="change-bar ${r.chg_pct>=0?'pos':'neg'}" style="width:${barW}px"></div>
+          <span class="${cls}">${sign}${r.chg_pct.toFixed(2)}%</span>
+        </div>`;
+      } else {
+        chgPctHtml = '<span class="na-cell">—</span>';
+      }
+      if (r.chg_abs != null) {
+        const cls  = r.chg_abs >= 0 ? 'pos-change' : 'neg-change';
+        const sign = r.chg_abs >= 0 ? '+' : '-';
+        chgAbsHtml = `<span class="${cls}">${sign}${fmtCap(Math.abs(r.chg_abs))}</span>`;
+      } else {
+        chgAbsHtml = '<span class="na-cell">—</span>';
+      }
+    }
+
+    const days = r.days != null ? r.days + 'd' : (r.loaded ? '<span class="na-cell">—</span>' : skel(32));
+    const filingDate = r.filing_date || (r.loaded ? '<span class="na-cell">—</span>' : skel(64));
+
+    const tr = document.createElement('tr');
+    tr.onclick = () => { window.location = '/gurus?guru=' + r.slug; };
+    tr.innerHTML = `
+      <td class="rank-cell ${rankCls}">${rankLabel}</td>
+      <td>
+        <div class="guru-name">${r.name}</div>
+        <div class="guru-fund">${r.fund}</div>
+      </td>
+      <td>${stylePill}</td>
+      <td class="num">${filingDate}</td>
+      <td class="num">${days}</td>
+      <td class="num">${filingValHtml}</td>
+      <td class="num">${currValHtml}</td>
+      <td class="num">${chgAbsHtml}</td>
+      <td class="num">${chgPctHtml}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// Column sort
+document.querySelectorAll('thead th.sortable').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.sort;
+    if (sortCol === col) {
+      sortDir *= -1;
+    } else {
+      sortCol = col;
+      sortDir = (col === 'filing_date') ? 1 : -1;
+    }
+    document.querySelectorAll('thead th').forEach(t => t.classList.remove('sort-asc', 'sort-desc'));
+    th.classList.add(sortDir > 0 ? 'sort-asc' : 'sort-desc');
+    renderTable();
+  });
+});
+
+// Bootstrap: load guru list then fire all holdings fetches in parallel
+fetch('/api/guru/list').then(r => r.json()).then(list => {
+  total = list.length;
+  rows = list.map(g => ({
+    slug: g.slug, name: g.name, fund: g.fund, style: g.style, color: g.color,
+    filing_date: null, days: null, filing_val: null, curr_val: null,
+    chg_abs: null, chg_pct: null, loaded: false,
+  }));
+  updateProgress();
+  renderTable();
+
+  list.forEach(g => {
+    fetch(`/api/guru/${g.slug}/holdings`)
+      .then(r => r.json())
+      .then(data => {
+        const row = rows.find(r => r.slug === g.slug);
+        if (!row) return;
+        row.loaded = true;
+        row.filing_date = data.filing_date || null;
+        if (data.filing_date) {
+          row.days = Math.floor((Date.now() - new Date(data.filing_date)) / (1000*60*60*24));
+        }
+        row.filing_val = data.filing_total_value  || null;
+        row.curr_val   = data.current_total_value || null;
+        if (row.filing_val && row.curr_val) {
+          row.chg_abs = row.curr_val - row.filing_val;
+          row.chg_pct = row.chg_abs / row.filing_val * 100;
+        }
+        done++;
+        updateProgress();
+        renderTable();
+      })
+      .catch(() => {
+        const row = rows.find(r => r.slug === g.slug);
+        if (row) row.loaded = true;
+        done++;
+        updateProgress();
+        renderTable();
+      });
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>S&P 500 – Recommendations</title>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; display: flex; flex-direction: column; }
+  header { background: #1a1d27; border-bottom: 1px solid #2d3148; padding: 12px 24px; display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+  header h1 { font-size: 1.25rem; font-weight: 700; color: #f8fafc; white-space: nowrap; }
+  .nav-links { display: flex; gap: 4px; margin-left: 8px; }
+  .nav-link { font-size: 0.82rem; padding: 5px 14px; border-radius: 6px; text-decoration: none; color: #94a3b8; transition: background .15s, color .15s; }
+  .nav-link:hover { background: #2d3148; color: #e2e8f0; }
+  .nav-link.active { background: #3730a3; color: #fff; font-weight: 600; }
+
+  #page-wrap { flex: 1; padding: 20px 24px; overflow-x: auto; }
+
+  /* summary bar */
+  #summary-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+  .sum-card { background: #1a1d27; border: 1px solid #2d3148; border-radius: 8px; padding: 10px 18px; display: flex; flex-direction: column; gap: 2px; min-width: 120px; cursor: pointer; transition: border-color .15s, background .15s; user-select: none; }
+  .sum-card:hover { border-color: #4f5b8a; background: #1e2235; }
+  .sum-card.active { border-color: #6366f1; background: #1e1b4b; }
+  .sum-card .sum-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: .06em; color: #64748b; }
+  .sum-card .sum-val { font-size: 1.35rem; font-weight: 700; }
+  .sum-card.strong-buy .sum-val { color: #059669; }
+  .sum-card.buy       .sum-val { color: #34d399; }
+  .sum-card.hold      .sum-val { color: #fbbf24; }
+  .sum-card.under     .sum-val { color: #f97316; }
+  .sum-card.sell      .sum-val { color: #f87171; }
+  .sum-card.total     .sum-val { color: #818cf8; }
+
+  /* toolbar */
+  #toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+  #toolbar input { background: #1a1d27; border: 1px solid #2d3148; color: #e2e8f0; padding: 6px 12px; border-radius: 6px; font-size: 0.83rem; min-width: 220px; outline: none; }
+  #toolbar input:focus { border-color: #3730a3; }
+  #label-filter { display: flex; gap: 6px; }
+  .lf-btn { background: #1a1d27; border: 1px solid #2d3148; color: #94a3b8; padding: 5px 14px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; }
+  .lf-btn.active { background: #3730a3; border-color: #3730a3; color: #fff; }
+  #refresh-btn { background: #1e2235; border: 1px solid #2d3148; color: #94a3b8; padding: 5px 14px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; margin-left: auto; }
+  #refresh-btn:hover { color: #e2e8f0; }
+  #sentiment-run-btn { background: #1e1b4b; border: 1px solid #3730a3; color: #818cf8; padding: 5px 14px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; }
+  #sentiment-run-btn:hover:not(:disabled) { background: #2d2a7a; color: #a5b4fc; }
+  #sentiment-run-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  #last-computed { font-size: 0.75rem; color: #475569; }
+
+  /* table */
+  .table-wrap { background: #131620; border: 1px solid #2d3148; border-radius: 10px; overflow: hidden; }
+  table.dataTable { width: 100% !important; border-collapse: collapse; }
+  table.dataTable thead th { background: #1a1d27; color: #64748b; font-size: 0.72rem; text-transform: uppercase; letter-spacing: .06em; padding: 11px 12px; border-bottom: 1px solid #2d3148; white-space: nowrap; cursor: pointer; }
+  table.dataTable thead th:hover { color: #e2e8f0; }
+  table.dataTable tbody tr { border-bottom: 1px solid #1e2235; cursor: pointer; transition: background .1s; }
+  table.dataTable tbody tr:hover { background: #1a1d27; }
+  table.dataTable tbody td { padding: 9px 12px; font-size: 0.82rem; white-space: nowrap; }
+  td.num, th.num { text-align: right; }
+  .dataTables_wrapper .dataTables_info, .dataTables_wrapper .dataTables_paginate { padding: 10px 14px; font-size: 0.78rem; color: #64748b; }
+  .dataTables_wrapper .dataTables_paginate .paginate_button { color: #94a3b8 !important; padding: 4px 10px; border-radius: 4px; }
+  .dataTables_wrapper .paginate_button.current { background: #3730a3 !important; color: #fff !important; border: none !important; }
+
+  /* cells */
+  .rank-num { font-size: 0.95rem; font-weight: 700; color: #475569; width: 36px; text-align: center; }
+  .rank-1 { color: #f59e0b; }
+  .rank-2 { color: #94a3b8; }
+  .rank-3 { color: #b45309; }
+  .ticker-link { font-weight: 700; color: #818cf8; font-family: monospace; font-size: 0.9rem; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+  .ticker-link:hover { color: #a5b4fc; }
+  .sector-tag { background: #1e2235; color: #94a3b8; padding: 2px 7px; border-radius: 4px; font-size: 0.72rem; }
+
+  /* score bar */
+  .score-cell { display: flex; align-items: center; gap: 8px; min-width: 110px; }
+  .score-bar-wrap { flex: 1; height: 6px; background: #2d3148; border-radius: 3px; overflow: hidden; min-width: 60px; }
+  .score-bar { height: 100%; border-radius: 3px; transition: width .3s; }
+  .score-num { font-size: 0.85rem; font-weight: 700; min-width: 32px; text-align: right; }
+
+  /* sub-scores */
+  .sub-scores { display: flex; gap: 4px; }
+  .ss-pill { font-size: 0.68rem; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+  .ss-pill.hi  { background: #064e3b; color: #34d399; }
+  .ss-pill.mid { background: #422006; color: #fbbf24; }
+  .ss-pill.lo  { background: #450a0a; color: #f87171; }
+
+  /* label badge */
+  .label-strong-buy { background: #064e3b; color: #34d399; padding: 3px 8px; border-radius: 5px; font-size: 0.72rem; font-weight: 700; }
+  .label-buy        { background: #052e16; color: #6ee7b7; padding: 3px 8px; border-radius: 5px; font-size: 0.72rem; font-weight: 700; }
+  .label-hold       { background: #422006; color: #fbbf24; padding: 3px 8px; border-radius: 5px; font-size: 0.72rem; font-weight: 700; }
+  .label-under      { background: #431407; color: #fb923c; padding: 3px 8px; border-radius: 5px; font-size: 0.72rem; font-weight: 700; }
+  .label-sell       { background: #450a0a; color: #f87171; padding: 3px 8px; border-radius: 5px; font-size: 0.72rem; font-weight: 700; }
+
+  /* change pct */
+  .pos { color: #34d399; }
+  .neg { color: #f87171; }
+  .neu { color: #64748b; }
+
+  /* guru chips */
+  .guru-chip { background: #1e1b4b; color: #818cf8; padding: 2px 7px; border-radius: 4px; font-size: 0.72rem; font-weight: 600; }
+
+  /* weight panel */
+  #summary-bar { align-items: flex-start; }
+  .sum-cards { display: flex; gap: 12px; flex-wrap: wrap; }
+  #weight-panel { flex: 1; min-width: 340px; background: #1a1d27; border: 1px solid #2d3148; border-radius: 8px; padding: 12px 16px; }
+  .wp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; }
+  .wp-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: .06em; color: #64748b; display: flex; align-items: center; gap: 6px; }
+  .wp-note  { font-size: 0.68rem; color: #334155; font-style: italic; flex: 1; }
+  #info-btn { background: none; border: none; color: #475569; font-size: 0.9rem; cursor: pointer; line-height: 1; padding: 0; transition: color .15s; }
+  #info-btn:hover { color: #818cf8; }
+  /* info popup */
+  #info-overlay { display: none; position: fixed; inset: 0; z-index: 200; }
+  #info-overlay.open { display: block; }
+  #info-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(92vw, 580px); max-height: 85vh; overflow-y: auto; background: #1a1d27; border: 1px solid #2d3148; border-radius: 12px; z-index: 201; padding: 22px 24px; box-shadow: 0 20px 60px rgba(0,0,0,.6); display: none; }
+  #info-popup.open { display: block; }
+  .ip-title { font-size: 1rem; font-weight: 700; color: #f8fafc; margin-bottom: 4px; }
+  .ip-sub   { font-size: 0.75rem; color: #475569; margin-bottom: 18px; }
+  .ip-section { margin-bottom: 16px; }
+  .ip-section h3 { font-size: 0.7rem; text-transform: uppercase; letter-spacing: .07em; color: #6366f1; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid #2d3148; }
+  .ip-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 0.8rem; }
+  .ip-row:not(:last-child) { border-bottom: 1px solid #1e2235; }
+  .ip-key  { color: #94a3b8; font-family: monospace; font-size: 0.75rem; }
+  .ip-val  { color: #e2e8f0; font-weight: 600; }
+  .ip-bar-wrap { flex: 1; margin: 0 10px; height: 4px; background: #2d3148; border-radius: 2px; overflow: hidden; }
+  .ip-bar  { height: 100%; background: #6366f1; border-radius: 2px; }
+  .ip-note { font-size: 0.72rem; color: #475569; font-style: italic; margin-top: 4px; }
+  #info-close { position: absolute; top: 14px; right: 16px; background: none; border: none; color: #64748b; font-size: 1.2rem; cursor: pointer; }
+  #info-close:hover { color: #e2e8f0; }
+  #reset-weights { background: #1e2235; border: 1px solid #2d3148; color: #94a3b8; padding: 3px 10px; border-radius: 5px; font-size: 0.72rem; cursor: pointer; }
+  #reset-weights:hover { color: #e2e8f0; border-color: #4f5b8a; }
+  .weight-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; }
+  .weight-row { display: flex; align-items: center; gap: 8px; }
+  .weight-label { font-size: 0.72rem; color: #94a3b8; width: 76px; flex-shrink: 0; }
+  .weight-slider { flex: 1; -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px; background: #2d3148; outline: none; cursor: pointer; }
+  .weight-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #6366f1; cursor: pointer; transition: background .15s; }
+  .weight-slider::-webkit-slider-thumb:hover { background: #818cf8; }
+  .weight-slider::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #6366f1; cursor: pointer; border: none; }
+  .weight-val { font-size: 0.78rem; color: #818cf8; width: 32px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  /* chart popup (reused from main page) */
+  #hist-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:99; }
+  #hist-overlay.active { display:block; }
+  #hist-popup { display:none; position:fixed; top:5vh; left:50%; transform:translateX(-50%); width:min(95vw,1100px); max-height:90vh; background:#1a1d27; border:1px solid #2d3148; border-radius:12px; z-index:100; overflow:auto; flex-direction:column; }
+  #hist-popup.open { display:flex; }
+  #hist-header { display:flex; align-items:center; gap:12px; padding:14px 20px; border-bottom:1px solid #2d3148; flex-shrink:0; }
+  #hist-title { font-size:1.1rem; font-weight:700; color:#f8fafc; flex:1; }
+  #hist-meta { font-size:0.78rem; color:#64748b; }
+  .interval-btns { display:flex; gap:4px; align-items:center; }
+  .interval-btn { background:#1a1d27; border:1px solid #2d3148; color:#94a3b8; padding:4px 12px; border-radius:6px; font-size:0.75rem; cursor:pointer; }
+  .interval-btn.active, .interval-btn:hover { background:#6366f1; border-color:#6366f1; color:#fff; }
+  #hist-close { background:none; border:none; color:#64748b; font-size:1.3rem; cursor:pointer; padding:0 4px; }
+  #hist-close:hover { color:#e2e8f0; }
+  #hist-stats { display:flex; gap:16px; padding:10px 20px; background:#131620; border-bottom:1px solid #1e2235; flex-wrap:wrap; flex-shrink:0; }
+  .stat-item { display:flex; flex-direction:column; gap:2px; }
+  .stat-item > *:first-child { font-size:0.68rem; color:#64748b; text-transform:uppercase; letter-spacing:.05em; }
+  .stat-item span { font-size:0.9rem; font-weight:600; color:#e2e8f0; }
+  #hist-body { display:flex; flex:1; min-height:0; overflow:hidden; }
+  #hist-charts { flex:1; display:flex; flex-direction:column; min-width:0; padding:12px; gap:8px; }
+  #price-chart { flex:3; min-height:0; }
+  #vol-chart   { flex:1; min-height:80px; }
+  #hist-company-wrap { width:300px; flex-shrink:0; border-left:1px solid #2d3148; overflow-y:auto; }
+  #hist-company { padding:12px; }
+  .section h3 { font-size:0.78rem; text-transform:uppercase; letter-spacing:.05em; color:#64748b; padding:8px 0 4px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #1e2235; margin-bottom:4px; }
+  .section h3:hover { color:#e2e8f0; }
+  .field-grid { display:none; grid-template-columns:1fr 1fr; gap:4px 8px; padding-bottom:6px; }
+  .section.open .field-grid { display:grid; }
+  .field { display:flex; flex-direction:column; gap:1px; }
+  .field label { font-size:0.65rem; color:#475569; text-transform:uppercase; }
+  .field span { font-size:0.78rem; color:#e2e8f0; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4/dist/lightweight-charts.standalone.production.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+</head>
+<body>
+<header>
+  <h1>S&amp;P 500</h1>
+  <nav class="nav-links">
+    <a href="/" class="nav-link">Table</a>
+    <a href="/screener" class="nav-link">Screener</a>
+    <a href="/gurus" class="nav-link">Guru Investing</a>
+    <a href="/recommendations" class="nav-link active">Recommendations</a>
+  </nav>
+</header>
+
+<div id="page-wrap">
+  <div id="summary-bar">
+    <div class="sum-cards">
+      <div class="sum-card total"      data-label="">            <span class="sum-label">Total Scored</span> <span class="sum-val" id="s-total">—</span></div>
+      <div class="sum-card strong-buy" data-label="Strong Buy"> <span class="sum-label">Strong Buy</span>   <span class="sum-val" id="s-sb">—</span></div>
+      <div class="sum-card buy"        data-label="Buy">        <span class="sum-label">Buy</span>          <span class="sum-val" id="s-b">—</span></div>
+      <div class="sum-card hold"       data-label="Hold">       <span class="sum-label">Hold</span>         <span class="sum-val" id="s-h">—</span></div>
+      <div class="sum-card under"      data-label="Underperform"><span class="sum-label">Underperform</span><span class="sum-val" id="s-u">—</span></div>
+      <div class="sum-card sell"       data-label="Sell">       <span class="sum-label">Sell</span>         <span class="sum-val" id="s-s">—</span></div>
+    </div>
+
+    <div id="weight-panel">
+      <div class="wp-header">
+        <span class="wp-title">Signal Weights <button id="info-btn" title="How scoring works">ⓘ</button></span>
+        <span class="wp-note">auto-normalized · drag to rebalance</span>
+        <button id="reset-weights">↺ Reset</button>
+      </div>
+      <div class="weight-grid">
+        <div class="weight-row">
+          <span class="weight-label">Momentum</span>
+          <input type="range" class="weight-slider" id="w-momentum"    data-signal="momentum"    min="0" max="100" value="15">
+          <span class="weight-val" id="wv-momentum">15%</span>
+        </div>
+        <div class="weight-row">
+          <span class="weight-label">Quality</span>
+          <input type="range" class="weight-slider" id="w-fundamental" data-signal="fundamental" min="0" max="100" value="25">
+          <span class="weight-val" id="wv-fundamental">25%</span>
+        </div>
+        <div class="weight-row">
+          <span class="weight-label">Valuation</span>
+          <input type="range" class="weight-slider" id="w-valuation"   data-signal="valuation"   min="0" max="100" value="15">
+          <span class="weight-val" id="wv-valuation">15%</span>
+        </div>
+        <div class="weight-row">
+          <span class="weight-label">Guru</span>
+          <input type="range" class="weight-slider" id="w-guru"        data-signal="guru"        min="0" max="100" value="15">
+          <span class="weight-val" id="wv-guru">15%</span>
+        </div>
+        <div class="weight-row">
+          <span class="weight-label">Analyst</span>
+          <input type="range" class="weight-slider" id="w-analyst"     data-signal="analyst"     min="0" max="100" value="15">
+          <span class="weight-val" id="wv-analyst">15%</span>
+        </div>
+        <div class="weight-row">
+          <span class="weight-label">Sentiment</span>
+          <input type="range" class="weight-slider" id="w-sentiment"   data-signal="sentiment"   min="0" max="100" value="15">
+          <span class="weight-val" id="wv-sentiment">15%</span>
+        </div>
+      </div>
+      <div id="sentiment-status" style="margin-top:8px;font-size:0.68rem;color:#334155;">Sentiment: loading…</div>
+    </div>
+  </div>
+
+  <div id="toolbar">
+    <input id="search-box" type="text" placeholder="Search ticker or company…">
+    <div id="label-filter">
+      <button class="lf-btn active" data-label="">All</button>
+      <button class="lf-btn" data-label="Strong Buy">Strong Buy</button>
+      <button class="lf-btn" data-label="Buy">Buy</button>
+      <button class="lf-btn" data-label="Hold">Hold</button>
+      <button class="lf-btn" data-label="Underperform">Underperform</button>
+      <button class="lf-btn" data-label="Sell">Sell</button>
+    </div>
+    <span id="last-computed"></span>
+    <button id="refresh-btn">⟳ Refresh Scores</button>
+    <button id="sentiment-run-btn">⚡ Run Sentiment</button>
+  </div>
+
+  <div class="table-wrap">
+    <table id="reco-tbl" class="dataTable">
+      <thead><tr>
+        <th class="num">Rank</th>
+        <th>Ticker</th>
+        <th>Company</th>
+        <th>Sector</th>
+        <th class="num">Score</th>
+        <th>Label</th>
+        <th class="num">Momentum</th>
+        <th class="num">Quality</th>
+        <th class="num">Valuation</th>
+        <th class="num">Guru</th>
+        <th class="num">Analyst</th>
+        <th>Sentiment</th>
+        <th class="num">Price</th>
+        <th class="num">Mkt Cap</th>
+        <th class="num">Change</th>
+        <th class="num">3M Ret</th>
+        <th class="num">1Y Ret</th>
+        <th class="num">Gurus</th>
+      </tr></thead>
+      <tbody id="reco-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- info popup -->
+<div id="info-overlay"></div>
+<div id="info-popup">
+  <button id="info-close">&#x2715;</button>
+  <div class="ip-title">How Stocks Are Scored</div>
+  <div class="ip-sub">Composite = weighted sum of 5 signals (each 0–100 percentile rank within S&amp;P 500). Weights are auto-normalized.</div>
+
+  <div class="ip-section">
+    <h3>Signal Weights &nbsp;(drag sliders to override)</h3>
+    <div class="ip-row"><span class="ip-key">Momentum</span>         <div class="ip-bar-wrap"><div class="ip-bar" style="width:15%"></div></div><span class="ip-val">15%</span></div>
+    <div class="ip-row"><span class="ip-key">Quality</span>          <div class="ip-bar-wrap"><div class="ip-bar" style="width:25%"></div></div><span class="ip-val">25%</span></div>
+    <div class="ip-row"><span class="ip-key">Valuation</span>        <div class="ip-bar-wrap"><div class="ip-bar" style="width:15%"></div></div><span class="ip-val">15%</span></div>
+    <div class="ip-row"><span class="ip-key">Guru Conviction</span>  <div class="ip-bar-wrap"><div class="ip-bar" style="width:15%"></div></div><span class="ip-val">15%</span></div>
+    <div class="ip-row"><span class="ip-key">Analyst Consensus</span><div class="ip-bar-wrap"><div class="ip-bar" style="width:15%"></div></div><span class="ip-val">15%</span></div>
+    <div class="ip-row"><span class="ip-key">Market Sentiment</span> <div class="ip-bar-wrap"><div class="ip-bar" style="width:15%;background:#34d399"></div></div><span class="ip-val" style="color:#34d399">15%</span></div>
+  </div>
+
+  <div class="ip-section">
+    <h3>Momentum — 3M/6M/1Y price return blend</h3>
+    <div class="ip-row"><span class="ip-key">3-Month return</span> <div class="ip-bar-wrap"><div class="ip-bar" style="width:30%"></div></div><span class="ip-val">30%</span></div>
+    <div class="ip-row"><span class="ip-key">6-Month return</span> <div class="ip-bar-wrap"><div class="ip-bar" style="width:40%"></div></div><span class="ip-val">40%</span></div>
+    <div class="ip-row"><span class="ip-key">1-Year return</span>  <div class="ip-bar-wrap"><div class="ip-bar" style="width:30%"></div></div><span class="ip-val">30%</span></div>
+    <div class="ip-note">Weighted return is percentile-ranked across S&amp;P 500. Higher score = stronger relative momentum.</div>
+  </div>
+
+  <div class="ip-section">
+    <h3>Fundamental Quality — profitability &amp; growth</h3>
+    <div class="ip-row"><span class="ip-key">returnOnEquity</span>   <div class="ip-bar-wrap"><div class="ip-bar" style="width:30%"></div></div><span class="ip-val">30%</span></div>
+    <div class="ip-row"><span class="ip-key">grossMargins</span>     <div class="ip-bar-wrap"><div class="ip-bar" style="width:20%"></div></div><span class="ip-val">20%</span></div>
+    <div class="ip-row"><span class="ip-key">operatingMargins</span> <div class="ip-bar-wrap"><div class="ip-bar" style="width:20%"></div></div><span class="ip-val">20%</span></div>
+    <div class="ip-row"><span class="ip-key">revenueGrowth</span>    <div class="ip-bar-wrap"><div class="ip-bar" style="width:15%"></div></div><span class="ip-val">15%</span></div>
+    <div class="ip-row"><span class="ip-key">earningsGrowth</span>   <div class="ip-bar-wrap"><div class="ip-bar" style="width:15%"></div></div><span class="ip-val">15%</span></div>
+    <div class="ip-note">Each metric independently percentile-ranked, then blended.</div>
+  </div>
+
+  <div class="ip-section">
+    <h3>Valuation — lower multiple = higher score</h3>
+    <div class="ip-row"><span class="ip-key">trailingPE</span>                   <div class="ip-bar-wrap"><div class="ip-bar" style="width:30%"></div></div><span class="ip-val">30%</span></div>
+    <div class="ip-row"><span class="ip-key">priceToBook</span>                  <div class="ip-bar-wrap"><div class="ip-bar" style="width:25%"></div></div><span class="ip-val">25%</span></div>
+    <div class="ip-row"><span class="ip-key">priceToSalesTrailing12Months</span> <div class="ip-bar-wrap"><div class="ip-bar" style="width:25%"></div></div><span class="ip-val">25%</span></div>
+    <div class="ip-row"><span class="ip-key">enterpriseToEbitda</span>           <div class="ip-bar-wrap"><div class="ip-bar" style="width:20%"></div></div><span class="ip-val">20%</span></div>
+    <div class="ip-note">Inverted rank — cheapest stock scores 100. Negative values clamped to 0 before ranking.</div>
+  </div>
+
+  <div class="ip-section">
+    <h3>Guru Conviction — 13F filing change tags</h3>
+    <div class="ip-row"><span class="ip-key">New position</span>     <span class="ip-val" style="color:#34d399">+3.0 pts</span></div>
+    <div class="ip-row"><span class="ip-key">Added to</span>         <span class="ip-val" style="color:#6ee7b7">+2.0 pts</span></div>
+    <div class="ip-row"><span class="ip-key">Held unchanged</span>   <span class="ip-val" style="color:#94a3b8">+1.0 pts</span></div>
+    <div class="ip-row"><span class="ip-key">Reduced</span>          <span class="ip-val" style="color:#f87171">−0.5 pts</span></div>
+    <div class="ip-note">Sum across all 21 gurus; normalized to 0–100 relative to highest-conviction stock.</div>
+  </div>
+
+  <div class="ip-section">
+    <h3>Analyst Consensus — Yahoo Finance recommendation</h3>
+    <div class="ip-row"><span class="ip-key">Strong Buy</span>   <div class="ip-bar-wrap"><div class="ip-bar" style="width:100%"></div></div><span class="ip-val">100</span></div>
+    <div class="ip-row"><span class="ip-key">Buy</span>          <div class="ip-bar-wrap"><div class="ip-bar" style="width:80%"></div></div><span class="ip-val">80</span></div>
+    <div class="ip-row"><span class="ip-key">Hold</span>         <div class="ip-bar-wrap"><div class="ip-bar" style="width:50%"></div></div><span class="ip-val">50</span></div>
+    <div class="ip-row"><span class="ip-key">Underperform</span> <div class="ip-bar-wrap"><div class="ip-bar" style="width:25%"></div></div><span class="ip-val">25</span></div>
+    <div class="ip-row"><span class="ip-key">Sell</span>         <div class="ip-bar-wrap"><div class="ip-bar" style="width:5%"></div></div> <span class="ip-val">5</span></div>
+    <div class="ip-note">Missing rating defaults to 50 (neutral) so no stock is unfairly penalized.</div>
+  </div>
+
+  <div class="ip-section">
+    <h3>Market Sentiment — StockTwits + Reddit + FinBERT</h3>
+    <div class="ip-row"><span class="ip-key">StockTwits sentiment</span><div class="ip-bar-wrap"><div class="ip-bar" style="width:40%"></div></div><span class="ip-val">40%</span></div>
+    <div class="ip-row"><span class="ip-key">Reddit sentiment</span>    <div class="ip-bar-wrap"><div class="ip-bar" style="width:30%"></div></div><span class="ip-val">30%</span></div>
+    <div class="ip-row"><span class="ip-key">Mention volume spike</span><div class="ip-bar-wrap"><div class="ip-bar" style="width:20%"></div></div><span class="ip-val">20%</span></div>
+    <div class="ip-row"><span class="ip-key">Sentiment momentum</span>  <div class="ip-bar-wrap"><div class="ip-bar" style="width:10%"></div></div><span class="ip-val">10%</span></div>
+    <div class="ip-note">Scored via FinBERT (finance-aware NLP). Covers Top-20 + Bottom-20 stocks. Runs once daily; refreshes after 12:00 ET. Un-scored stocks default to 50 (neutral).</div>
+    <div style="margin-top:8px">
+      <div class="ip-row"><span class="ip-key">≥ 80</span><span class="ip-val" style="color:#34d399">Strong Bullish</span></div>
+      <div class="ip-row"><span class="ip-key">≥ 60</span><span class="ip-val" style="color:#6ee7b7">Bullish</span></div>
+      <div class="ip-row"><span class="ip-key">≥ 40</span><span class="ip-val" style="color:#64748b">Neutral</span></div>
+      <div class="ip-row"><span class="ip-key">≥ 20</span><span class="ip-val" style="color:#fb923c">Bearish</span></div>
+      <div class="ip-row"><span class="ip-key">&lt; 20</span><span class="ip-val" style="color:#f87171">Strong Bearish</span></div>
+    </div>
+  </div>
+
+  <div class="ip-section">
+    <h3>Score → Label thresholds</h3>
+    <div class="ip-row"><span class="ip-key">≥ 68</span><span class="ip-val" style="color:#34d399">Strong Buy</span></div>
+    <div class="ip-row"><span class="ip-key">≥ 57</span><span class="ip-val" style="color:#6ee7b7">Buy</span></div>
+    <div class="ip-row"><span class="ip-key">≥ 44</span><span class="ip-val" style="color:#fbbf24">Hold</span></div>
+    <div class="ip-row"><span class="ip-key">≥ 32</span><span class="ip-val" style="color:#fb923c">Underperform</span></div>
+    <div class="ip-row"><span class="ip-key">&lt; 32</span><span class="ip-val" style="color:#f87171">Sell</span></div>
+  </div>
+</div>
+
+<!-- chart popup -->
+<div id="hist-overlay"></div>
+<div id="hist-popup">
+  <div id="hist-header">
+    <div id="hist-title"></div>
+    <span id="hist-meta"></span>
+    <div class="interval-btns">
+      <button class="interval-btn active" data-interval="1d">Daily</button>
+      <button class="interval-btn" data-interval="5m">5 Min</button>
+    </div>
+    <button id="hist-close">&#x2715;</button>
+  </div>
+  <div id="hist-stats"></div>
+  <div id="hist-body">
+    <div id="hist-charts">
+      <div id="price-chart"></div>
+      <div id="vol-chart"></div>
+    </div>
+    <div id="hist-company-wrap">
+      <div id="hist-company"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const fmt = {
+  price: v => v == null ? '—' : '$' + Number(v).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}),
+  cap:   v => { if (v == null) return '—'; const a=Math.abs(v); if(a>=1e12) return '$'+(v/1e12).toFixed(2)+'T'; if(a>=1e9) return '$'+(v/1e9).toFixed(2)+'B'; if(a>=1e6) return '$'+(v/1e6).toFixed(1)+'M'; return '$'+v.toLocaleString(); },
+  pct:   v => v == null ? '—' : (v*100).toFixed(1)+'%',
+  num:   (v,d=1) => v == null ? '—' : Number(v).toFixed(d),
+};
+
+function scoreColor(s) {
+  if (s >= 75) return '#34d399';
+  if (s >= 62) return '#6ee7b7';
+  if (s >= 45) return '#fbbf24';
+  if (s >= 32) return '#fb923c';
+  return '#f87171';
+}
+
+function subPill(label, val) {
+  const cls = val >= 65 ? 'hi' : val >= 40 ? 'mid' : 'lo';
+  return `<span class="ss-pill ${cls}" title="${label}">${Math.round(val)}</span>`;
+}
+
+function labelBadge(l) {
+  const key = l.toLowerCase().replace(' ', '-').replace('underperform','under');
+  return `<span class="label-${key}">${l}</span>`;
+}
+
+function pctCell(v) {
+  if (v == null) return '<span class="neu">—</span>';
+  const cls = v > 0 ? 'pos' : v < 0 ? 'neg' : 'neu';
+  return `<span class="${cls}">${v > 0 ? '+' : ''}${v.toFixed(1)}%</span>`;
+}
+
+const _SENT_STYLE = {
+  'Strong Bullish': ['#064e3b','#34d399'],
+  'Bullish':        ['#052e16','#6ee7b7'],
+  'Neutral':        ['#1e2235','#64748b'],
+  'Bearish':        ['#431407','#fb923c'],
+  'Strong Bearish': ['#450a0a','#f87171'],
+};
+function sentBadge(cls, score, posts) {
+  if (!cls) return '<span class="neu" title="Not yet scored">—</span>';
+  const [bg, fg] = _SENT_STYLE[cls] || _SENT_STYLE['Neutral'];
+  const tip = `${cls} · score ${score} · ${posts} posts`;
+  return `<span style="background:${bg};color:${fg};padding:2px 6px;border-radius:4px;font-size:0.68rem;font-weight:600;white-space:nowrap" title="${tip}">${cls}</span>`;
+}
+
+// ── Weight engine ─────────────────────────────────────────────────────────────
+const BASELINE_WEIGHTS = { momentum: 15, fundamental: 25, valuation: 15, guru: 15, analyst: 15, sentiment: 15 };
+const LABEL_THRESHOLDS = [[68,'Strong Buy'],[57,'Buy'],[44,'Hold'],[32,'Underperform'],[0,'Sell']];
+
+function computeLabel(s) {
+  for (const [thr, lbl] of LABEL_THRESHOLDS) if (s >= thr) return lbl;
+  return 'Sell';
+}
+
+function getNormWeights() {
+  const raw = {};
+  document.querySelectorAll('.weight-slider').forEach(sl => { raw[sl.dataset.signal] = parseFloat(sl.value); });
+  const total = Object.values(raw).reduce((a, b) => a + b, 0) || 1;
+  const norm = {};
+  for (const k in raw) norm[k] = raw[k] / total;
+  return norm;
+}
+
+function recomputeAndRender() {
+  if (!allData.length) return;
+  const w = getNormWeights();
+  const scored = allData.map(d => {
+    const score = Math.round((
+      d.momentum    * w.momentum    +
+      d.fundamental * w.fundamental +
+      d.valuation   * w.valuation   +
+      d.guru        * w.guru        +
+      d.analyst     * w.analyst     +
+      (d.sentiment ?? 50) * (w.sentiment ?? 0)
+    ) * 10) / 10;
+    return { ...d, score, label: computeLabel(score) };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  scored.forEach((d, i) => d.rank = i + 1);
+  updateSummary(scored);
+  buildTable(scored);
+}
+
+document.querySelectorAll('.weight-slider').forEach(sl => {
+  sl.addEventListener('input', function() {
+    document.getElementById('wv-' + this.dataset.signal).textContent = this.value + '%';
+    recomputeAndRender();
+  });
+});
+
+document.getElementById('reset-weights').addEventListener('click', () => {
+  document.querySelectorAll('.weight-slider').forEach(sl => {
+    const sig = sl.dataset.signal;
+    sl.value = BASELINE_WEIGHTS[sig];
+    document.getElementById('wv-' + sig).textContent = BASELINE_WEIGHTS[sig] + '%';
+  });
+  recomputeAndRender();
+});
+// ─────────────────────────────────────────────────────────────────────────────
+
+let dt = null, allData = [], activeLabel = '';
+
+function buildTable(data) {
+  if (dt) { dt.destroy(); dt = null; }   // must destroy before touching DOM
+  const tbody = document.getElementById('reco-body');
+  tbody.innerHTML = '';
+  data.forEach(d => {
+    const rankCls = d.rank <= 3 ? `rank-${d.rank}` : '';
+    const tr = document.createElement('tr');
+    tr.dataset.label = d.label;
+    tr.innerHTML = `
+      <td class="num"><span class="rank-num ${rankCls}">${d.rank}</span></td>
+      <td><span class="ticker-link" onclick="openHistory('${d.ticker}')">${d.ticker}</span></td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${d.longName || '—'}</td>
+      <td>${d.sector ? `<span class="sector-tag">${d.sector}</span>` : '—'}</td>
+      <td class="num" data-order="${d.score}">
+        <div class="score-cell">
+          <div class="score-bar-wrap"><div class="score-bar" style="width:${d.score}%;background:${scoreColor(d.score)}"></div></div>
+          <span class="score-num" style="color:${scoreColor(d.score)}">${d.score}</span>
+        </div>
+      </td>
+      <td>${labelBadge(d.label)}</td>
+      <td class="num" data-order="${d.momentum}">${subPill('Momentum', d.momentum)}</td>
+      <td class="num" data-order="${d.fundamental}">${subPill('Quality', d.fundamental)}</td>
+      <td class="num" data-order="${d.valuation}">${subPill('Valuation', d.valuation)}</td>
+      <td class="num" data-order="${d.guru}">${subPill('Guru', d.guru)}</td>
+      <td class="num" data-order="${d.analyst}">${subPill('Analyst', d.analyst)}</td>
+      <td data-order="${d.sentiment ?? 50}">${sentBadge(d.sentiment_label, d.sentiment, d.sentiment_posts)}</td>
+      <td class="num">${fmt.price(d.currentPrice)}</td>
+      <td class="num">${fmt.cap(d.marketCap)}</td>
+      <td class="num" data-order="${d.d1 ?? -999}">${pctCell(d.d1)}</td>
+      <td class="num" data-order="${d.m3 ?? -999}">${pctCell(d.m3)}</td>
+      <td class="num" data-order="${d.y1 ?? -999}">${pctCell(d.y1)}</td>
+      <td class="num">${d.guru_count > 0 ? `<span class="guru-chip">${d.guru_count} guru${d.guru_count>1?'s':''}</span>` : '<span class="neu">—</span>'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+  dt = $('#reco-tbl').DataTable({
+    paging: true, pageLength: 50,
+    dom: 'tip',
+    order: [[4, 'desc']],
+    columnDefs: [
+      { targets: [0,4,6,7,8,9,10,12,13,14,15,16], type: 'num' },
+      { orderable: false, targets: [1,5,17] },
+    ],
+  });
+}
+
+function updateSummary(data) {
+  const counts = { 'Strong Buy': 0, 'Buy': 0, 'Hold': 0, 'Underperform': 0, 'Sell': 0 };
+  data.forEach(d => { if (counts[d.label] != null) counts[d.label]++; });
+  document.getElementById('s-total').textContent = data.length;
+  document.getElementById('s-sb').textContent = counts['Strong Buy'];
+  document.getElementById('s-b').textContent  = counts['Buy'];
+  document.getElementById('s-h').textContent  = counts['Hold'];
+  document.getElementById('s-u').textContent  = counts['Underperform'];
+  document.getElementById('s-s').textContent  = counts['Sell'];
+}
+
+function setLabelFilter(label) {
+  activeLabel = label;
+  document.querySelectorAll('.lf-btn').forEach(b => b.classList.toggle('active', b.dataset.label === label));
+  document.querySelectorAll('.sum-card').forEach(c => c.classList.toggle('active', c.dataset.label === label));
+  // col 5 = Label; use regex anchors for exact match, empty string = show all
+  if (dt) dt.column(5).search(label ? '^' + label + '$' : '', true, false).draw();
+}
+
+document.getElementById('search-box').addEventListener('input', function() {
+  if (dt) dt.search(this.value).draw();
+});
+
+document.querySelectorAll('.lf-btn').forEach(btn => {
+  btn.addEventListener('click', () => setLabelFilter(btn.dataset.label));
+});
+
+document.querySelectorAll('.sum-card').forEach(card => {
+  card.addEventListener('click', () => setLabelFilter(card.dataset.label));
+});
+
+function loadData() {
+  document.getElementById('last-computed').textContent = 'Computing…';
+  fetch('/api/recommendations').then(r => r.json()).then(data => {
+    allData = data;
+    recomputeAndRender();
+    document.getElementById('last-computed').textContent = `Last scored: ${new Date().toLocaleTimeString()}`;
+  }).catch(() => { document.getElementById('last-computed').textContent = 'Error loading'; });
+}
+
+document.getElementById('refresh-btn').addEventListener('click', () => {
+  fetch('/api/recommendations', { method: 'DELETE' }).catch(() => {});
+  loadData();
+});
+
+const _sentBtn = document.getElementById('sentiment-run-btn');
+_sentBtn.addEventListener('click', () => {
+  _sentBtn.disabled = true;
+  _sentBtn.textContent = '⏳ Running…';
+  const el = document.getElementById('sentiment-status');
+  el.textContent = 'Sentiment: pass triggered — computing…';
+  el.style.color = '#fbbf24';
+  fetch('/api/sentiment/run', { method: 'POST' })
+    .then(r => r.json())
+    .then(res => {
+      if (!res.ok) {
+        el.textContent = 'Sentiment: ' + res.message;
+        el.style.color = '#f87171';
+        _sentBtn.disabled = false;
+        _sentBtn.textContent = '⚡ Run Sentiment';
+        return;
+      }
+      el.textContent = `Sentiment: scoring ${res.tickers.length} tickers in background…`;
+      // Poll until done, then reload recommendations to reflect new scores
+      const poll = setInterval(() => {
+        fetch('/api/sentiment/status').then(r => r.json()).then(s => {
+          if (!s.running) {
+            clearInterval(poll);
+            _sentBtn.disabled = false;
+            _sentBtn.textContent = '⚡ Run Sentiment';
+            updateSentimentStatus();
+            loadData();   // reload recommendations with updated sentiment scores
+          } else {
+            el.textContent = `Sentiment: computing… (${s.scored_today} scored so far)`;
+          }
+        });
+      }, 5000);
+    })
+    .catch(err => {
+      el.textContent = 'Sentiment: request failed — ' + err.message;
+      el.style.color = '#f87171';
+      _sentBtn.disabled = false;
+      _sentBtn.textContent = '⚡ Run Sentiment';
+    });
+});
+
+loadData();
+
+// ── Sentiment status ──────────────────────────────────────────────────────────
+function updateSentimentStatus() {
+  fetch('/api/sentiment/status').then(r => r.json()).then(s => {
+    const el = document.getElementById('sentiment-status');
+    if (s.running) {
+      el.textContent = `Sentiment: computing… (${s.scored_today} stocks scored so far)`;
+      el.style.color = '#fbbf24';
+      setTimeout(updateSentimentStatus, 8000);   // poll while running
+    } else if (s.scored_today > 0) {
+      const t = s.last_run ? new Date(s.last_run).toLocaleTimeString() : '?';
+      el.textContent = `Sentiment: ${s.scored_today} stocks scored · last updated ${t}`;
+      el.style.color = '#34d399';
+    } else {
+      el.textContent = 'Sentiment: will compute on first recommendation load';
+      el.style.color = '#475569';
+    }
+  }).catch(() => {
+    document.getElementById('sentiment-status').textContent = 'Sentiment: status unavailable';
+  });
+}
+updateSentimentStatus();
+
+// ── Chart popup ──────────────────────────────────────────────────────────────
+let priceChart = null, volChart = null, priceSeries = null, volSeries = null;
+let _histTicker = null;
+
+function openHistory(ticker) {
+  _histTicker = ticker;
+  document.getElementById('hist-title').textContent = ticker;
+  document.getElementById('hist-meta').textContent = 'Loading…';
+  document.getElementById('hist-stats').innerHTML = '';
+  document.getElementById('hist-company').innerHTML = '<div style="padding:16px;color:#64748b;font-size:0.8rem">Loading…</div>';
+  document.querySelectorAll('.interval-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.interval-btn[data-interval="1d"]').classList.add('active');
+  document.getElementById('hist-popup').classList.add('open');
+  document.getElementById('hist-overlay').classList.add('active');
+  fetch(`/api/company/${ticker}`).then(r => r.json()).then(renderCompanyPanel).catch(() => {});
+  _loadHistChart(ticker, '1d');
+}
+
+function _loadHistChart(ticker, interval) {
+  document.getElementById('hist-meta').textContent = 'Loading…';
+  fetch(`/api/history/${ticker}?interval=${interval}`)
+    .then(r => r.json())
+    .then(data => _renderHistChart(data, interval))
+    .catch(err => { document.getElementById('hist-meta').textContent = 'Error: ' + err.message; });
+}
+
+function _renderHistChart(data, interval) {
+  const rows = Array.isArray(data) ? data : (data.rows || []);
+  if (!rows.length) { document.getElementById('hist-meta').textContent = 'No data'; return; }
+  if (interval !== '5m') {
+    const high = Math.max(...rows.map(r => r.high)), low = Math.min(...rows.map(r => r.low)), last = rows[rows.length-1];
+    document.getElementById('hist-meta').textContent = `${rows.length} trading days  ·  ${rows[0].time} → ${rows[rows.length-1].time}`;
+    document.getElementById('hist-stats').innerHTML = `
+      <div class="stat-item"><div>Last Close</div><span>${'$'+last.close.toFixed(2)}</span></div>
+      <div class="stat-item"><div>52W High</div><span>${'$'+high.toFixed(2)}</span></div>
+      <div class="stat-item"><div>52W Low</div><span>${'$'+low.toFixed(2)}</span></div>
+      <div class="stat-item"><div>Last Volume</div><span>${(last.volume/1e6).toFixed(2)}M</span></div>`;
+  } else {
+    document.getElementById('hist-meta').textContent = `${rows.length} bars (5 min)`;
+    document.getElementById('hist-stats').innerHTML = '';
+  }
+  const pEl = document.getElementById('price-chart'), vEl = document.getElementById('vol-chart');
+  pEl.innerHTML = ''; vEl.innerHTML = ''; vEl.style.display = 'block';
+  if (priceChart) { priceChart.remove(); priceChart = null; }
+  if (volChart)   { volChart.remove();   volChart = null; }
+  const opts = { autoSize: true, layout: { background: { color: '#1a1d27' }, textColor: '#94a3b8' }, grid: { vertLines: { color: '#1e2235' }, horzLines: { color: '#1e2235' } }, timeScale: { borderColor: '#2d3148', timeVisible: true }, rightPriceScale: { borderColor: '#2d3148' } };
+  priceChart = LightweightCharts.createChart(pEl, opts);
+  priceSeries = priceChart.addCandlestickSeries({ upColor: '#34d399', downColor: '#f87171', borderUpColor: '#34d399', borderDownColor: '#f87171', wickUpColor: '#34d399', wickDownColor: '#f87171' });
+  priceSeries.setData(rows.map(r => ({ time:r.time, open:r.open, high:r.high, low:r.low, close:r.close })));
+  priceChart.timeScale().fitContent();
+  volChart = LightweightCharts.createChart(vEl, opts);
+  volSeries = volChart.addHistogramSeries({ color: '#3730a3', priceFormat: { type: 'volume' } });
+  volSeries.setData(rows.map((r,i) => ({ time:r.time, value:r.volume, color: i>0&&r.close>=rows[i-1].close?'#34d39966':'#f8717166' })));
+  volChart.timeScale().fitContent();
+  priceChart.timeScale().subscribeVisibleLogicalRangeChange(range => { if (range) volChart.timeScale().setVisibleLogicalRange(range); });
+  volChart.timeScale().subscribeVisibleLogicalRangeChange(range => { if (range) priceChart.timeScale().setVisibleLogicalRange(range); });
+}
+
+function renderCompanyPanel(data) {
+  const c = document.getElementById('hist-company'); c.innerHTML = '';
+  if (!data || !data.sections) return;
+  for (const [sn, fields] of Object.entries(data.sections)) {
+    if (!fields || !Object.keys(fields).length) continue;
+    const sec = document.createElement('div'); sec.className = 'section';
+    sec.innerHTML = `<h3>${sn}</h3><div class="field-grid"></div>`;
+    sec.querySelector('h3').addEventListener('click', () => sec.classList.toggle('open'));
+    const grid = sec.querySelector('.field-grid');
+    for (const [k,v] of Object.entries(fields)) {
+      const f = document.createElement('div'); f.className = 'field';
+      f.innerHTML = `<label>${k}</label><span>${v == null ? '—' : String(v)}</span>`;
+      grid.appendChild(f);
+    }
+    c.appendChild(sec);
+  }
+}
+
+document.querySelectorAll('.interval-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.interval-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (_histTicker) _loadHistChart(_histTicker, btn.dataset.interval);
+  });
+});
+
+function closeHistory() {
+  document.getElementById('hist-popup').classList.remove('open');
+  document.getElementById('hist-overlay').classList.remove('active');
+}
+document.getElementById('hist-close').addEventListener('click', closeHistory);
+document.getElementById('hist-overlay').addEventListener('click', closeHistory);
+
+// ── Info popup ────────────────────────────────────────────────────────────────
+function openInfo()  { document.getElementById('info-popup').classList.add('open'); document.getElementById('info-overlay').classList.add('open'); }
+function closeInfo() { document.getElementById('info-popup').classList.remove('open'); document.getElementById('info-overlay').classList.remove('open'); }
+document.getElementById('info-btn').addEventListener('click', openInfo);
+document.getElementById('info-close').addEventListener('click', closeInfo);
+document.getElementById('info-overlay').addEventListener('click', closeInfo);
+</script>
+</body>
+</html>

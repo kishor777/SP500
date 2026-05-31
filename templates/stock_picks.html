@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>S&amp;P 500 – Stock Picks</title>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; display: flex; flex-direction: column; }
+  header { background: #1a1d27; border-bottom: 1px solid #2d3148; padding: 12px 24px; display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+  header h1 { font-size: 1.25rem; font-weight: 700; color: #f8fafc; white-space: nowrap; }
+  .nav-links { display: flex; gap: 4px; }
+  .nav-link { font-size: 0.82rem; padding: 5px 14px; border-radius: 6px; text-decoration: none; color: #94a3b8; transition: background .15s, color .15s; }
+  .nav-link:hover { background: #2d3148; color: #e2e8f0; }
+  .nav-link.active { background: #3730a3; color: #fff; font-weight: 600; }
+
+  #filter-bar { padding: 12px 24px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; background: #0f1117; border-bottom: 1px solid #1e2235; }
+  #filter-bar input, #filter-bar select { background: #1a1d27; border: 1px solid #2d3148; color: #e2e8f0; padding: 6px 12px; border-radius: 6px; font-size: 0.83rem; outline: none; }
+  #filter-bar input { min-width: 220px; }
+  #filter-bar input:focus, #filter-bar select:focus { border-color: #3730a3; }
+  #result-count { font-size: 0.78rem; color: #64748b; margin-left: 4px; }
+  #loading-bar { height: 3px; background: #3730a3; width: 0%; transition: width .3s; }
+
+  #main { padding: 0 24px 24px; overflow-x: auto; flex: 1; }
+  .page-title { font-size: 1.3rem; font-weight: 700; color: #f8fafc; padding: 20px 0 4px; }
+  .page-sub { font-size: 0.8rem; color: #64748b; margin-bottom: 16px; }
+
+  table.dataTable { border-collapse: collapse; width: 100% !important; }
+  table.dataTable thead th { background: #1a1d27; color: #64748b; font-size: 0.72rem; text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid #2d3148; padding: 10px 12px; cursor: pointer; }
+  table.dataTable tbody tr { border-bottom: 1px solid #1e2235; transition: background .1s; cursor: pointer; }
+  table.dataTable tbody tr:hover { background: #1a1d27; }
+  table.dataTable tbody td { padding: 9px 12px; font-size: 0.82rem; white-space: nowrap; }
+  th.num, td.num { text-align: right !important; }
+  .dataTables_wrapper .dataTables_filter, .dataTables_wrapper .dataTables_length { display: none; }
+  .dataTables_info { font-size: 0.75rem; color: #64748b; padding: 8px 0; }
+  table.dataTable thead .sorting::after, table.dataTable thead .sorting_asc::after,
+  table.dataTable thead .sorting_desc::after { color: #64748b; }
+
+  .ticker-badge { font-weight: 700; color: #818cf8; font-family: monospace; font-size: 0.9rem; text-decoration: underline dotted; }
+  .ticker-badge:hover { color: #a5b4fc; }
+  .guru-count-badge { display: inline-block; background: #3730a3; color: #a5b4fc; font-weight: 700; font-size: 0.78rem; padding: 2px 9px; border-radius: 99px; }
+  .guru-pill { display: inline-block; font-size: 0.65rem; font-weight: 700; padding: 2px 7px; border-radius: 4px; margin: 1px; white-space: nowrap; }
+  .sector-tag { background: #1e2235; color: #94a3b8; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; }
+  .pos-change { color: #34d399; } .neg-change { color: #f87171; }
+  .rec-strong-buy { color: #059669; font-weight: 700; }
+  .rec-buy { color: #34d399; font-weight: 600; }
+  .rec-hold { color: #fbbf24; font-weight: 600; }
+  .rec-sell { color: #f87171; font-weight: 600; }
+  .rec-none { color: #475569; }
+
+  /* Chart popup */
+  #hist-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 100; display: none; }
+  #hist-overlay.active { display: block; }
+  #hist-popup { position: fixed; top: 5vh; left: 50%; transform: translateX(-50%); width: 90vw; max-width: 1100px; height: 88vh; background: #1a1d27; border: 1px solid #2d3148; border-radius: 12px; z-index: 101; display: none; flex-direction: column; overflow: hidden; }
+  #hist-popup.open { display: flex; }
+  #hist-header { padding: 14px 20px; border-bottom: 1px solid #2d3148; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  #hist-title { font-size: 1.1rem; font-weight: 700; color: #f8fafc; }
+  #hist-meta { font-size: 0.78rem; color: #64748b; flex: 1; }
+  .interval-btns { display:flex; gap:4px; align-items:center; }
+  .interval-btn { background:#1a1d27; border:1px solid #2d3148; color:#94a3b8; padding:4px 12px; border-radius:6px; font-size:0.75rem; cursor:pointer; }
+  .interval-btn.active,.interval-btn:hover { background:#6366f1; border-color:#6366f1; color:#fff; }
+  #hist-close { background: none; border: 1px solid #2d3148; color: #94a3b8; border-radius: 6px; padding: 5px 12px; cursor: pointer; font-size: 0.8rem; }
+  #hist-body { display: flex; flex: 1; overflow: hidden; }
+  #hist-charts { flex: 1; display: flex; flex-direction: column; padding: 12px; gap: 8px; min-width: 0; }
+  #hist-stats { display: flex; gap: 16px; flex-shrink: 0; padding: 0 4px 4px; flex-wrap: wrap; }
+  .stat-item { font-size: 0.75rem; color: #94a3b8; } .stat-item span { color: #e2e8f0; font-weight: 600; }
+  #price-chart { flex: 3; min-height: 0; }
+  #vol-chart { flex: 1; min-height: 0; display: none; }
+  #hist-company-panel { width: 300px; min-width: 300px; border-left: 1px solid #2d3148; overflow-y: auto; background: #131620; }
+  #hist-company-divider { font-size: 0.68rem; text-transform: uppercase; letter-spacing: .06em; color: #475569; padding: 10px 14px 6px; border-bottom: 1px solid #1e2235; }
+  #hist-company { padding: 0 0 16px; }
+  .section { border-bottom: 1px solid #1e2235; }
+  .section-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 14px; cursor: pointer; font-size: 0.78rem; color: #94a3b8; font-weight: 600; }
+  .section-header:hover { background: #1a1d27; }
+  .section-chevron { font-size: 0.65rem; transition: transform .2s; }
+  .section.open .section-chevron { transform: rotate(90deg); }
+  .field-grid { display: none; grid-template-columns: 1fr; gap: 0; padding: 4px 14px 10px; }
+  .section.open .field-grid { display: grid; }
+  .field { padding: 4px 0; display: flex; flex-direction: column; gap: 2px; border-bottom: 1px solid #1a1d27; }
+  .field label { font-size: 0.65rem; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
+  .field span { font-size: 0.8rem; color: #e2e8f0; word-break: break-word; white-space: normal; }
+  .summary-text { font-size: 0.75rem; color: #94a3b8; line-height: 1.5; max-height: 100px; overflow-y: auto; }
+  .guru-sub-nav { background: #131620; border-bottom: 1px solid #2d3148; padding: 0 24px; display: flex; gap: 2px; flex-shrink: 0; }
+  .guru-sub-tab { font-size: 0.82rem; padding: 9px 18px; text-decoration: none; color: #64748b; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .15s; }
+  .guru-sub-tab:hover { color: #e2e8f0; }
+  .guru-sub-tab.active { color: #818cf8; border-bottom-color: #3730a3; font-weight: 600; }
+</style>
+</head>
+<body>
+<header>
+  <h1>S&amp;P 500 Guru Investing</h1>
+  <nav class="nav-links">
+    <a href="/" class="nav-link">Table</a>
+    <a href="/screener" class="nav-link">Screener</a>
+    <a href="/gurus" class="nav-link active">Guru Investing</a>
+    <a href="/recommendations" class="nav-link">Recommendations</a>
+  </nav>
+</header>
+<div class="guru-sub-nav">
+  <a href="/gurus" class="guru-sub-tab">Portfolio</a>
+  <a href="/leaderboard" class="guru-sub-tab">Leaderboard</a>
+  <a href="/stock-picks" class="guru-sub-tab active">Stock Picks</a>
+</div>
+<div id="loading-bar"></div>
+
+<div id="filter-bar">
+  <input id="search" type="text" placeholder="Search ticker or company…">
+  <select id="sector-filter"><option value="">All Sectors</option></select>
+  <select id="min-gurus">
+    <option value="1">1+ Gurus</option>
+    <option value="2" selected>2+ Gurus</option>
+    <option value="3">3+ Gurus</option>
+    <option value="4">4+ Gurus</option>
+    <option value="5">5+ Gurus</option>
+  </select>
+  <span id="result-count"></span>
+</div>
+
+<div id="main">
+  <h2 class="page-title">Stock Conviction Leaderboard</h2>
+  <p class="page-sub" id="page-sub">Stocks held as equity positions across guru portfolios, ranked by number of gurus. Loading…</p>
+  <div style="overflow-x:auto">
+    <table id="stock-dt" style="width:100%">
+      <thead><tr>
+        <th class="num">#</th>
+        <th>Ticker</th>
+        <th>Company</th>
+        <th>Sector</th>
+        <th class="num">Gurus</th>
+        <th>Held By</th>
+        <th class="num">Total Value</th>
+        <th class="num">Total Shares</th>
+        <th class="num">Price</th>
+        <th class="num">Mkt Cap</th>
+        <th class="num">P/E</th>
+        <th>Rec</th>
+      </tr></thead>
+      <tbody id="stock-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Chart popup -->
+<div id="hist-overlay"></div>
+<div id="hist-popup">
+  <div id="hist-header">
+    <div id="hist-title">—</div>
+    <div id="hist-meta"></div>
+    <div class="interval-btns">
+      <button class="interval-btn active" data-interval="1d">Daily</button>
+      <button class="interval-btn" data-interval="5m">5 Min</button>
+    </div>
+    <button id="hist-close">✕ Close</button>
+  </div>
+  <div id="hist-body">
+    <div id="hist-charts">
+      <div id="hist-stats"></div>
+      <div id="price-chart"></div>
+      <div id="vol-chart"></div>
+    </div>
+    <div id="hist-company-panel">
+      <div id="hist-company-divider">Company Details</div>
+      <div id="hist-company"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<script>
+function fmtCap(v) {
+  if (v == null) return '—';
+  const a = Math.abs(v);
+  if (a >= 1e12) return '$' + (v/1e12).toFixed(2) + 'T';
+  if (a >= 1e9)  return '$' + (v/1e9).toFixed(2) + 'B';
+  if (a >= 1e6)  return '$' + (v/1e6).toFixed(1) + 'M';
+  return '$' + v.toLocaleString();
+}
+function n(v) { return v ?? ''; }
+function recBadge(v) {
+  if (!v || v === 'none') return '<span class="rec-none">—</span>';
+  const map = {strong_buy:'Strong Buy',buy:'Buy',hold:'Hold',sell:'Sell',strong_sell:'Strong Sell'};
+  const cls = {strong_buy:'rec-strong-buy',buy:'rec-buy',hold:'rec-hold',sell:'rec-sell',strong_sell:'rec-sell'};
+  return `<span class="${cls[v]||'rec-hold'}">${map[v]||v}</span>`;
+}
+
+let allData = [];
+let dt = null;
+
+fetch('/api/guru/stock-leaderboard').then(r => r.json()).then(resp => {
+  document.getElementById('loading-bar').style.width = '100%';
+  setTimeout(() => { document.getElementById('loading-bar').style.display = 'none'; }, 400);
+
+  allData = resp.items || [];
+  const loaded = resp.loaded_gurus || 0;
+  const total  = resp.total_gurus  || 0;
+  document.getElementById('page-sub').textContent =
+    `Equity positions across ${loaded} of ${total} guru portfolios · ranked by conviction (guru count). ` +
+    (resp.source === 'cache' ? 'From in-memory cache — visit Guru Investing to populate DB.' : 'From database.');
+
+  // Populate sector dropdown
+  const sectors = [...new Set(allData.map(d => d.sector).filter(Boolean))].sort();
+  const sel = document.getElementById('sector-filter');
+  sectors.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; sel.appendChild(o); });
+
+  renderTable();
+
+  document.getElementById('search').addEventListener('input', () => { if (dt) dt.search(document.getElementById('search').value).draw(); updateCount(); });
+  document.getElementById('sector-filter').addEventListener('change', applyFilters);
+  document.getElementById('min-gurus').addEventListener('change', applyFilters);
+}).catch(err => {
+  document.getElementById('page-sub').textContent = 'Error loading data: ' + err.message;
+});
+
+function applyFilters() {
+  const sector   = document.getElementById('sector-filter').value;
+  const minGurus = parseInt(document.getElementById('min-gurus').value) || 1;
+  const search   = document.getElementById('search').value.toLowerCase();
+
+  const filtered = allData.filter(d =>
+    d.guru_count >= minGurus &&
+    (!sector || d.sector === sector) &&
+    (!search || (d.ticker||'').toLowerCase().includes(search) || (d.longName||'').toLowerCase().includes(search))
+  );
+  rebuildTable(filtered);
+}
+
+function renderTable() {
+  const minGurus = parseInt(document.getElementById('min-gurus').value) || 1;
+  rebuildTable(allData.filter(d => d.guru_count >= minGurus));
+}
+
+function rebuildTable(data) {
+  if (dt) { try { dt.destroy(); } catch(e){} dt = null; }
+  const tbody = document.getElementById('stock-body');
+  tbody.innerHTML = '';
+
+  data.forEach((d, i) => {
+    const pills = (d.gurus || []).map(g =>
+      `<span class="guru-pill" style="background:${g.color}22;color:${g.color};border:1px solid ${g.color}44" title="${g.slug}">${g.short}</span>`
+    ).join('');
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="num">${i + 1}</td>
+      <td><span class="ticker-badge" onclick="openHistory('${d.ticker}')">${d.ticker}</span></td>
+      <td>${d.longName || '—'}</td>
+      <td>${d.sector ? `<span class="sector-tag">${d.sector}</span>` : '—'}</td>
+      <td class="num" data-order="${d.guru_count}"><span class="guru-count-badge">${d.guru_count}</span></td>
+      <td>${pills}</td>
+      <td class="num" data-order="${d.total_value}">${fmtCap(d.total_value)}</td>
+      <td class="num" data-order="${d.total_shares}">${d.total_shares ? d.total_shares.toLocaleString() : '—'}</td>
+      <td class="num" data-order="${n(d.currentPrice)}">${d.currentPrice != null ? '$' + d.currentPrice.toFixed(2) : '—'}</td>
+      <td class="num" data-order="${n(d.marketCap)}">${fmtCap(d.marketCap)}</td>
+      <td class="num" data-order="${n(d.trailingPE)}">${d.trailingPE != null ? d.trailingPE.toFixed(1) : '—'}</td>
+      <td>${recBadge(d.recommendationKey)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  dt = $('#stock-dt').DataTable({
+    paging: false, dom: 'ti',
+    order: [[4, 'desc'], [6, 'desc']],
+    columnDefs: [{ targets: [4,6,7,8,9,10], type: 'num' }, { orderable: false, targets: [5] }]
+  });
+  updateCount();
+}
+
+function updateCount() {
+  const shown = dt ? dt.rows({search:'applied'}).count() : 0;
+  document.getElementById('result-count').textContent = shown + ' stocks';
+}
+
+// Chart popup
+let priceChart = null, volChart = null, priceSeries = null, volSeries = null;
+let _histTicker = null;
+
+function openHistory(ticker) {
+  _histTicker = ticker;
+  document.getElementById('hist-title').textContent = ticker;
+  document.getElementById('hist-meta').textContent = 'Loading…';
+  document.getElementById('hist-stats').innerHTML = '';
+  document.getElementById('hist-company').innerHTML = '<div style="padding:16px;color:#64748b;font-size:0.8rem">Loading…</div>';
+  document.querySelectorAll('.interval-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.interval-btn[data-interval="1d"]').classList.add('active');
+  document.getElementById('hist-popup').classList.add('open');
+  document.getElementById('hist-overlay').classList.add('active');
+  fetch(`/api/company/${ticker}`).then(r => r.json()).then(renderCompanyPanel).catch(() => {});
+  _loadHistChart(ticker, '1d');
+}
+
+function _loadHistChart(ticker, interval) {
+  document.getElementById('hist-meta').textContent = 'Loading…';
+  fetch(`/api/history/${ticker}?interval=${interval}`)
+    .then(r => r.json())
+    .then(rows => _renderHistChart(rows, interval))
+    .catch(err => { document.getElementById('hist-meta').textContent = 'Error: ' + err.message; });
+}
+
+function _renderHistChart(data, interval) {
+  const rows = Array.isArray(data) ? data : (data.rows || []);
+  if (!rows.length) { document.getElementById('hist-meta').textContent = 'No data'; return; }
+  if (interval !== '5m') {
+    const high = Math.max(...rows.map(r => r.high)), low = Math.min(...rows.map(r => r.low)), last = rows[rows.length-1];
+    document.getElementById('hist-meta').textContent = `${rows.length} trading days  ·  ${rows[0].time} → ${rows[rows.length-1].time}`;
+    document.getElementById('hist-stats').innerHTML = `
+      <div class="stat-item">Last Close <span>$${last.close.toFixed(2)}</span></div>
+      <div class="stat-item">52W High <span>$${high.toFixed(2)}</span></div>
+      <div class="stat-item">52W Low <span>$${low.toFixed(2)}</span></div>
+      <div class="stat-item">Last Volume <span>${(last.volume/1e6).toFixed(2)}M</span></div>`;
+  } else {
+    document.getElementById('hist-meta').textContent = `${rows.length} bars (5 min)`;
+    document.getElementById('hist-stats').innerHTML = '';
+  }
+  const pEl = document.getElementById('price-chart'), vEl = document.getElementById('vol-chart');
+  pEl.innerHTML = ''; vEl.innerHTML = ''; vEl.style.display = 'block';
+  if (priceChart) { priceChart.remove(); priceChart = null; }
+  if (volChart)   { volChart.remove();   volChart = null; }
+  const opts = { autoSize: true, layout: { background: { color: '#1a1d27' }, textColor: '#94a3b8' }, grid: { vertLines: { color: '#1e2235' }, horzLines: { color: '#1e2235' } }, timeScale: { borderColor: '#2d3148', timeVisible: true }, rightPriceScale: { borderColor: '#2d3148' } };
+  priceChart = LightweightCharts.createChart(pEl, opts);
+  priceSeries = priceChart.addCandlestickSeries({ upColor: '#34d399', downColor: '#f87171', borderUpColor: '#34d399', borderDownColor: '#f87171', wickUpColor: '#34d399', wickDownColor: '#f87171' });
+  priceSeries.setData(rows.map(r => ({ time:r.time, open:r.open, high:r.high, low:r.low, close:r.close })));
+  priceChart.timeScale().fitContent();
+  volChart = LightweightCharts.createChart(vEl, opts);
+  volSeries = volChart.addHistogramSeries({ color: '#3730a3', priceFormat: { type: 'volume' } });
+  volSeries.setData(rows.map((r, i) => ({ time: r.time, value: r.volume, color: i > 0 && r.close >= rows[i-1].close ? '#34d39966' : '#f8717166' })));
+  volChart.timeScale().fitContent();
+  priceChart.timeScale().subscribeVisibleLogicalRangeChange(range => { if (range) volChart.timeScale().setVisibleLogicalRange(range); });
+  volChart.timeScale().subscribeVisibleLogicalRangeChange(range => { if (range) priceChart.timeScale().setVisibleLogicalRange(range); });
+}
+
+function renderCompanyPanel(data) {
+  const container = document.getElementById('hist-company');
+  container.innerHTML = '';
+  if (!data || !data.sections) return;
+  for (const [sectionName, fields] of Object.entries(data.sections)) {
+    if (!fields || Object.keys(fields).length === 0) continue;
+    const sec = document.createElement('div'); sec.className = 'section';
+    sec.innerHTML = `<div class="section-header"><span>${sectionName}</span><span class="section-chevron">▶</span></div>`;
+    const grid = document.createElement('div'); grid.className = 'field-grid';
+    for (const [key, val] of Object.entries(fields)) {
+      const fEl = document.createElement('div'); fEl.className = 'field';
+      const displayVal = val == null ? '—' : (typeof val === 'object' ? JSON.stringify(val) : (key.toLowerCase().includes('summary') ? `<div class="summary-text">${String(val)}</div>` : String(val)));
+      fEl.innerHTML = `<label>${key}</label><span>${displayVal}</span>`;
+      grid.appendChild(fEl);
+    }
+    sec.appendChild(grid);
+    sec.querySelector('.section-header').addEventListener('click', () => sec.classList.toggle('open'));
+    container.appendChild(sec);
+  }
+}
+
+document.querySelectorAll('.interval-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.interval-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (_histTicker) _loadHistChart(_histTicker, btn.dataset.interval);
+  });
+});
+
+function closeHistory() {
+  document.getElementById('hist-popup').classList.remove('open');
+  document.getElementById('hist-overlay').classList.remove('active');
+}
+document.getElementById('hist-close').addEventListener('click', closeHistory);
+document.getElementById('hist-overlay').addEventListener('click', closeHistory);
+
+</script>
+</body>
+</html>

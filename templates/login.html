@@ -1,0 +1,22 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Login</title><style>
+*{box-sizing:border-box}
+body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0f172a;font-family:system-ui,sans-serif}
+form{background:#1e293b;padding:2rem;border-radius:.75rem;display:flex;flex-direction:column;gap:.75rem;width:300px}
+h2{margin:0;color:#f1f5f9;font-size:1.1rem}
+input[type=password]{padding:.6rem .75rem;border-radius:.375rem;border:1px solid #334155;background:#0f172a;color:#f1f5f9;font-size:.95rem}
+button{padding:.6rem;border-radius:.375rem;background:#6366f1;color:#fff;border:none;cursor:pointer;font-size:.95rem}
+button:hover{background:#4f46e5}
+.err{color:#f87171;font-size:.85rem;margin:0}
+.ok{color:#86efac;font-size:.85rem;margin:0}
+a{color:#94a3b8;font-size:.8rem;text-align:center}
+</style></head><body>
+<form method="post" action="/api/admin/login">
+  <h2>&#128274; Admin Login</h2>
+  {% if error %}<p class="err">{{ error }}</p>{% endif %}
+  {% if info %}<p class="ok">{{ info }}</p>{% endif %}
+  <input name="password" type="password" placeholder="Secret" autofocus autocomplete="current-password">
+  <input name="next" type="hidden" value="{{ next }}">
+  <button type="submit">Login</button>
+  {% if logged_in %}<a href="/api/admin/logout">Logout</a>{% endif %}
+</form></body></html>
