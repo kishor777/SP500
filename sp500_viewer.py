@@ -52,7 +52,8 @@ limiter = Limiter(key_func=_client_ip, app=app, default_limits=["200 per minute"
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
 app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY") or os.urandom(24)
-_ADMIN_SECRET = os.environ.get("ADMIN_SECRET", "")
+_ADMIN_SECRET = os.environ.get("ADMIN_SECRET", "").strip()
+print(f"[auth] ADMIN_SECRET length={len(_ADMIN_SECRET)} set={bool(_ADMIN_SECRET)}")
 
 def require_auth(f):
     @wraps(f)
@@ -61,6 +62,19 @@ def require_auth(f):
             return jsonify({"error": "Unauthorized", "login": "/admin/login"}), 401
         return f(*args, **kwargs)
     return _inner
+
+_LOGIN_ENDPOINTS = {"admin_login_page", "admin_login_redirect", "admin_login", "admin_logout"}
+
+@app.before_request
+def _global_auth():
+    if not _ADMIN_SECRET:
+        return
+    if request.endpoint in _LOGIN_ENDPOINTS:
+        return
+    if not session.get("authed"):
+        if request.path.startswith("/api/"):
+            return jsonify({"error": "Unauthorized", "login": "/admin/login"}), 401
+        return redirect(f"/admin/login?next={request.path}")
 
 # ── info — load from MySQL ────────────────────────────────────────────────────
 def _load_info() -> pd.DataFrame:
@@ -1382,6 +1396,10 @@ def admin_login_page():
     info = "Already logged in." if logged_in else None
     return render_template_string(_LOGIN_HTML, error=None, info=info,
                                   next=request.args.get("next", "/"), logged_in=logged_in)
+
+@app.get("/api/admin/login")
+def admin_login_redirect():
+    return redirect("/admin/login")
 
 @app.post("/api/admin/login")
 def admin_login():
