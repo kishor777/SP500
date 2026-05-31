@@ -131,6 +131,11 @@
   .weight-slider::-webkit-slider-thumb:hover { background: #818cf8; }
   .weight-slider::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #6366f1; cursor: pointer; border: none; }
   .weight-val { font-size: 0.78rem; color: #818cf8; width: 32px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .horizon-row { display:flex; align-items:center; gap:8px; margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #2d3148; }
+  .horizon-label { font-size:0.72rem; color:#94a3b8; white-space:nowrap; }
+  #horizon-select { background:#0f172a; color:#e2e8f0; border:1px solid #4f5b8a; border-radius:5px; padding:3px 10px; font-size:0.78rem; cursor:pointer; flex:1; }
+  #horizon-select:focus { outline:none; border-color:#6366f1; }
+  #horizon-badge { font-size:0.65rem; color:#64748b; white-space:nowrap; font-style:italic; }
 
   /* chart popup (reused from main page) */
   #hist-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:99; }
@@ -194,6 +199,16 @@
         <span class="wp-title">Signal Weights <button id="info-btn" title="How scoring works">ⓘ</button></span>
         <span class="wp-note">auto-normalized · drag to rebalance</span>
         <button id="reset-weights">↺ Reset</button>
+      </div>
+      <div class="horizon-row">
+        <span class="horizon-label">Hold horizon</span>
+        <select id="horizon-select">
+          <option value="default">Custom (drag sliders)</option>
+          <option value="3m">1–3 Month</option>
+          <option value="6m">6 Month</option>
+          <option value="1y">1 Year</option>
+        </select>
+        <span id="horizon-badge">equal weights</span>
       </div>
       <div class="weight-grid">
         <div class="weight-row">
@@ -433,7 +448,20 @@ function sentBadge(cls, score, posts) {
 }
 
 // ── Weight engine ─────────────────────────────────────────────────────────────
-const BASELINE_WEIGHTS = { momentum: 15, fundamental: 25, valuation: 15, guru: 15, analyst: 15, sentiment: 15 };
+// Data-driven presets from 1-year S&P 500 backtest (symmetric hit/loss optimisation)
+const HORIZON_PRESETS = {
+  'default': { momentum: 15, fundamental: 25, valuation: 15, guru: 15, analyst: 15, sentiment: 15 },
+  '3m':      { momentum: 35, fundamental: 38, valuation:  5, guru: 13, analyst:  5, sentiment:  4 },
+  '6m':      { momentum: 38, fundamental: 25, valuation:  5, guru: 23, analyst:  5, sentiment:  4 },
+  '1y':      { momentum:  5, fundamental: 37, valuation:  5, guru: 37, analyst: 11, sentiment:  5 },
+};
+const HORIZON_BADGES = {
+  'default': 'equal weights — drag to customise',
+  '3m':      'data-optimised · momentum + quality dominant',
+  '6m':      'data-optimised · momentum + guru balanced',
+  '1y':      'data-optimised · quality + guru dominant',
+};
+const BASELINE_WEIGHTS = HORIZON_PRESETS['default'];
 const LABEL_THRESHOLDS = [[68,'Strong Buy'],[57,'Buy'],[44,'Hold'],[32,'Underperform'],[0,'Sell']];
 
 function computeLabel(s) {
@@ -473,17 +501,31 @@ function recomputeAndRender() {
 document.querySelectorAll('.weight-slider').forEach(sl => {
   sl.addEventListener('input', function() {
     document.getElementById('wv-' + this.dataset.signal).textContent = this.value + '%';
+    document.getElementById('horizon-select').value = 'default';
+    document.getElementById('horizon-badge').textContent = HORIZON_BADGES['default'];
     recomputeAndRender();
   });
 });
 
-document.getElementById('reset-weights').addEventListener('click', () => {
+function applyHorizonPreset(key) {
+  const preset = HORIZON_PRESETS[key] || HORIZON_PRESETS['default'];
   document.querySelectorAll('.weight-slider').forEach(sl => {
     const sig = sl.dataset.signal;
-    sl.value = BASELINE_WEIGHTS[sig];
-    document.getElementById('wv-' + sig).textContent = BASELINE_WEIGHTS[sig] + '%';
+    const val = preset[sig] ?? 0;
+    sl.value = val;
+    document.getElementById('wv-' + sig).textContent = val + '%';
   });
+  document.getElementById('horizon-badge').textContent = HORIZON_BADGES[key] || '';
   recomputeAndRender();
+}
+
+document.getElementById('horizon-select').addEventListener('change', function () {
+  applyHorizonPreset(this.value);
+});
+
+document.getElementById('reset-weights').addEventListener('click', () => {
+  const key = document.getElementById('horizon-select').value;
+  applyHorizonPreset(key);
 });
 // ─────────────────────────────────────────────────────────────────────────────
 
