@@ -228,7 +228,8 @@ def guru_holdings_route(slug):
 def guru_screen_route(slug):
     if slug not in GURUS:
         return jsonify({"error": "Unknown guru"}), 404
-    return jsonify({"count": len(_apply_guru_rules(slug)), "results": _apply_guru_rules(slug)})
+    results = _apply_guru_rules(slug)
+    return jsonify({"count": len(results), "results": results})
 
 @bp.get("/api/guru/stock-leaderboard")
 def stock_leaderboard_api():
