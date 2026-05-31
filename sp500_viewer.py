@@ -650,8 +650,13 @@ def company_detail(ticker):
     return jsonify(result)
 
 
+_VALID_TICKER = re.compile(r'^[A-Z0-9.]{1,10}$')
+
 @app.get("/api/history/<ticker>")
 def history_data(ticker):
+    ticker = ticker.upper()
+    if not _VALID_TICKER.match(ticker):
+        return jsonify({"error": "Invalid ticker"}), 400
     interval = request.args.get("interval", "1d")
     if interval == "5m":
         return jsonify(_get_intraday(ticker))
@@ -1427,6 +1432,8 @@ def admin_login_redirect():
 def admin_login():
     password = request.form.get("password", "")
     next_url  = request.form.get("next", "/")
+    if not next_url.startswith("/") or next_url.startswith("//"):
+        next_url = "/"
     if not _ADMIN_SECRET:
         session["authed"] = True
         return redirect(next_url)
@@ -2221,6 +2228,9 @@ def sentiment_run_api():
 @app.get("/api/sentiment/test/<ticker>")
 @limiter.limit("10 per minute")
 def sentiment_test_api(ticker):
+    ticker = ticker.upper()
+    if not _VALID_TICKER.match(ticker):
+        return jsonify({"error": "Invalid ticker"}), 400
     """Diagnostic: raw connectivity probe for StockTwits and Yahoo Finance RSS."""
     import requests as _req
     results = {}
