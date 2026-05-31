@@ -280,7 +280,6 @@
         <th class="num">Rank</th>
         <th>Ticker</th>
         <th>Company</th>
-        <th>Sector</th>
         <th class="num">Score</th>
         <th>Label</th>
         <th>Horizons</th>
@@ -581,7 +580,6 @@ function buildTable(data) {
       <td class="num"><span class="rank-num ${rankCls}">${d.rank}</span></td>
       <td><span class="ticker-link" onclick="openHistory('${d.ticker}')">${d.ticker}</span></td>
       <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${d.longName || '—'}</td>
-      <td>${d.sector ? `<span class="sector-tag">${d.sector}</span>` : '—'}</td>
       <td class="num" data-order="${d.score}">
         <div class="score-cell">
           <div class="score-bar-wrap"><div class="score-bar" style="width:${d.score}%;background:${scoreColor(d.score)}"></div></div>
