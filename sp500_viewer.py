@@ -16,7 +16,9 @@ for _lib in ("yfinance", "urllib3", "requests",
 logging.getLogger("sqlalchemy").setLevel(logging.ERROR)
 import numpy as np
 import pandas as pd
-from flask import Flask, jsonify, render_template_string, request
+import os
+from functools import wraps
+from flask import Flask, jsonify, render_template_string, request, session, redirect
 from flask_limiter import Limiter
 from db_config import (get_engine, create_guru_tables, create_guru_rules_table,
                        migrate_guru_tables, create_intraday_table,
@@ -47,6 +49,18 @@ def _client_ip():
     return request.headers.get("X-Forwarded-For", request.remote_addr or "127.0.0.1").split(",")[0].strip()
 
 limiter = Limiter(key_func=_client_ip, app=app, default_limits=["200 per minute"], storage_uri="memory://")
+
+# ── Auth ──────────────────────────────────────────────────────────────────────
+app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY") or os.urandom(24)
+_ADMIN_SECRET = os.environ.get("ADMIN_SECRET", "")
+
+def require_auth(f):
+    @wraps(f)
+    def _inner(*args, **kwargs):
+        if _ADMIN_SECRET and not session.get("authed"):
+            return jsonify({"error": "Unauthorized", "login": "/admin/login"}), 401
+        return f(*args, **kwargs)
+    return _inner
 
 # ── info — load from MySQL ────────────────────────────────────────────────────
 def _load_info() -> pd.DataFrame:
@@ -1338,6 +1352,56 @@ def history_backfill_status():
     return jsonify(_hist_backfill_status)
 
 
+# ── Admin login ───────────────────────────────────────────────────────────────
+_LOGIN_HTML = """<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Login</title><style>
+*{box-sizing:border-box}
+body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0f172a;font-family:system-ui,sans-serif}
+form{background:#1e293b;padding:2rem;border-radius:.75rem;display:flex;flex-direction:column;gap:.75rem;width:300px}
+h2{margin:0;color:#f1f5f9;font-size:1.1rem}
+input[type=password]{padding:.6rem .75rem;border-radius:.375rem;border:1px solid #334155;background:#0f172a;color:#f1f5f9;font-size:.95rem}
+button{padding:.6rem;border-radius:.375rem;background:#6366f1;color:#fff;border:none;cursor:pointer;font-size:.95rem}
+button:hover{background:#4f46e5}
+.err{color:#f87171;font-size:.85rem;margin:0}
+.ok{color:#86efac;font-size:.85rem;margin:0}
+a{color:#94a3b8;font-size:.8rem;text-align:center}
+</style></head><body>
+<form method="post" action="/api/admin/login">
+  <h2>&#128274; Admin Login</h2>
+  {% if error %}<p class="err">{{ error }}</p>{% endif %}
+  {% if info %}<p class="ok">{{ info }}</p>{% endif %}
+  <input name="password" type="password" placeholder="Secret" autofocus autocomplete="current-password">
+  <input name="next" type="hidden" value="{{ next }}">
+  <button type="submit">Login</button>
+  {% if logged_in %}<a href="/api/admin/logout">Logout</a>{% endif %}
+</form></body></html>"""
+
+@app.get("/admin/login")
+def admin_login_page():
+    logged_in = bool(session.get("authed"))
+    info = "Already logged in." if logged_in else None
+    return render_template_string(_LOGIN_HTML, error=None, info=info,
+                                  next=request.args.get("next", "/"), logged_in=logged_in)
+
+@app.post("/api/admin/login")
+def admin_login():
+    password = request.form.get("password", "")
+    next_url  = request.form.get("next", "/")
+    if not _ADMIN_SECRET:
+        session["authed"] = True
+        return redirect(next_url)
+    if password == _ADMIN_SECRET:
+        session["authed"] = True
+        return redirect(next_url)
+    return render_template_string(_LOGIN_HTML, error="Incorrect password.",
+                                  info=None, next=next_url, logged_in=False), 401
+
+@app.get("/api/admin/logout")
+def admin_logout():
+    session.clear()
+    return redirect("/admin/login")
+
+
 @app.get("/api/screener/saved-filters")
 def saved_filters_list():
     from sqlalchemy import text as _t
@@ -1364,6 +1428,7 @@ def saved_filters_get(filter_id):
 
 
 @app.post("/api/screener/saved-filters")
+@require_auth
 def saved_filters_save():
     import json as _json
     from sqlalchemy import text as _t
@@ -1393,6 +1458,7 @@ def saved_filters_save():
 
 
 @app.delete("/api/screener/saved-filters/<int:filter_id>")
+@require_auth
 def saved_filters_delete(filter_id):
     from sqlalchemy import text as _t
     engine = get_engine()
@@ -1473,6 +1539,7 @@ def screener_meta_route():
 
 @app.post("/api/screener/run")
 @limiter.limit("60 per minute")
+@require_auth
 def screener_run():
     body = request.get_json(force=True)
     mask = pd.Series(True, index=df.index)
@@ -2093,6 +2160,7 @@ def sentiment_status_api():
 
 @app.post("/api/sentiment/run")
 @limiter.limit("5 per minute")
+@require_auth
 def sentiment_run_api():
     """Trigger an on-demand sentiment pass for current top/bottom 20 tickers."""
     from sentiment_engine import _sentiment_running
@@ -2142,6 +2210,7 @@ def sentiment_test_api(ticker):
 
 
 @app.delete("/api/recommendations")
+@require_auth
 def recommendations_bust():
     _reco_cache["ts"] = 0.0
     return jsonify({"ok": True})
