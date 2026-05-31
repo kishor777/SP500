@@ -63,7 +63,7 @@ def require_auth(f):
         return f(*args, **kwargs)
     return _inner
 
-_LOGIN_ENDPOINTS = {"admin_login_page", "admin_login_redirect", "admin_login", "admin_logout"}
+_LOGIN_ENDPOINTS = {"admin_login_page", "admin_login_redirect", "admin_login", "admin_logout", "health"}
 
 @app.before_request
 def _global_auth():
@@ -140,7 +140,7 @@ def _market_is_open() -> bool:
         return False
     return _time(9, 30) <= now.time() < _time(16, 0)
 
-_last_refresh: dict = {"ts": None, "count": 0, "status": "pending"}
+_last_refresh: dict = {"ts": None, "count": 0, "status": "pending", "epoch": 0.0}
 _vol_trade_buy_date:  str | None = None   # date of last completed auto-buy
 _vol_trade_sell_date: str | None = None   # date of last completed auto-sell
 
@@ -554,7 +554,8 @@ def _price_refresh_loop():
                                          "low": price, "close": price, "volume": 0})
                     updated += 1
                 _last_refresh.update({"ts": _dt.now(_NYSE_TZ).strftime("%H:%M:%S ET"),
-                                      "count": updated, "status": "open"})
+                                      "count": updated, "status": "open",
+                                      "epoch": time.time()})
                 print(f"[refresh] {updated} prices updated at {_last_refresh['ts']}")
 
             # ── intraday 5-min bars ───────────────────────────────────────
@@ -1364,6 +1365,27 @@ def last_refresh_route():
 @app.get("/api/history-backfill-status")
 def history_backfill_status():
     return jsonify(_hist_backfill_status)
+
+
+@app.get("/health")
+def health():
+    market_open   = _market_is_open()
+    refresh_alive = _refresh_thread.is_alive()
+    epoch         = _last_refresh.get("epoch", 0.0)
+    age_sec       = int(time.time() - epoch) if epoch else None
+    stale_limit   = SCHEDULER_CONFIG["refresh_interval_sec"] * 2  # 2 missed cycles = problem
+
+    degraded = not refresh_alive or (market_open and epoch and age_sec > stale_limit)
+
+    return jsonify({
+        "status":                 "degraded" if degraded else "ok",
+        "market_open":            market_open,
+        "refresh_thread":         "alive" if refresh_alive else "dead",
+        "backfill_thread":        "alive" if _backfill_thread.is_alive() else "done",
+        "last_refresh_status":    _last_refresh.get("status"),
+        "last_refresh_age_seconds": age_sec,
+        "last_refresh_count":     _last_refresh.get("count"),
+    }), (503 if degraded else 200)
 
 
 # ── Admin login ───────────────────────────────────────────────────────────────
