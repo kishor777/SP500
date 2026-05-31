@@ -14,15 +14,15 @@
   .nav-link:hover { background: #2d3148; color: #e2e8f0; }
   .nav-link.active { background: #3730a3; color: #fff; font-weight: 600; }
 
-  #page-wrap { flex: 1; padding: 20px 24px; overflow-x: auto; }
+  #page-wrap { flex: 1; padding: 12px 20px; overflow-x: auto; }
 
   /* summary bar */
-  #summary-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
-  .sum-card { background: #1a1d27; border: 1px solid #2d3148; border-radius: 8px; padding: 10px 18px; display: flex; flex-direction: column; gap: 2px; min-width: 120px; cursor: pointer; transition: border-color .15s, background .15s; user-select: none; }
+  #summary-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .sum-card { background: #1a1d27; border: 1px solid #2d3148; border-radius: 8px; padding: 7px 14px; display: flex; flex-direction: column; gap: 1px; min-width: 100px; cursor: pointer; transition: border-color .15s, background .15s; user-select: none; }
   .sum-card:hover { border-color: #4f5b8a; background: #1e2235; }
   .sum-card.active { border-color: #6366f1; background: #1e1b4b; }
-  .sum-card .sum-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: .06em; color: #64748b; }
-  .sum-card .sum-val { font-size: 1.35rem; font-weight: 700; }
+  .sum-card .sum-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: .06em; color: #64748b; }
+  .sum-card .sum-val { font-size: 1.15rem; font-weight: 700; }
   .sum-card.strong-buy .sum-val { color: #059669; }
   .sum-card.buy       .sum-val { color: #34d399; }
   .sum-card.hold      .sum-val { color: #fbbf24; }
@@ -98,7 +98,7 @@
   #summary-bar { align-items: flex-start; }
   .sum-cards { display: flex; gap: 12px; flex-wrap: wrap; }
   #weight-panel { flex: 1; min-width: 340px; background: #1a1d27; border: 1px solid #2d3148; border-radius: 8px; padding: 12px 16px; }
-  .wp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; }
+  .wp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; gap: 8px; }
   .wp-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: .06em; color: #64748b; display: flex; align-items: center; gap: 6px; }
   .wp-note  { font-size: 0.68rem; color: #334155; font-style: italic; flex: 1; }
   #info-btn { background: none; border: none; color: #475569; font-size: 0.9rem; cursor: pointer; line-height: 1; padding: 0; transition: color .15s; }
@@ -123,7 +123,7 @@
   #info-close:hover { color: #e2e8f0; }
   #reset-weights { background: #1e2235; border: 1px solid #2d3148; color: #94a3b8; padding: 3px 10px; border-radius: 5px; font-size: 0.72rem; cursor: pointer; }
   #reset-weights:hover { color: #e2e8f0; border-color: #4f5b8a; }
-  .weight-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; }
+  .weight-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px 16px; }
   .weight-row { display: flex; align-items: center; gap: 8px; }
   .weight-label { font-size: 0.72rem; color: #94a3b8; width: 76px; flex-shrink: 0; }
   .weight-slider { flex: 1; -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px; background: #2d3148; outline: none; cursor: pointer; }
@@ -131,7 +131,15 @@
   .weight-slider::-webkit-slider-thumb:hover { background: #818cf8; }
   .weight-slider::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #6366f1; cursor: pointer; border: none; }
   .weight-val { font-size: 0.78rem; color: #818cf8; width: 32px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .horizon-row { display:flex; align-items:center; gap:8px; margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #2d3148; }
+  .horizon-row { display:flex; align-items:center; gap:8px; margin-bottom:6px; padding-bottom:6px; border-bottom:1px solid #2d3148; }
+  /* Horizon column badges */
+  .hz-wrap { display:flex; gap:3px; }
+  .hz-badge { font-size:0.6rem; padding:2px 5px; border-radius:3px; font-weight:700; cursor:default; }
+  .hz-sb { background:#064e3b; color:#34d399; }
+  .hz-b  { background:#052e16; color:#6ee7b7; }
+  .hz-h  { background:#422006; color:#fbbf24; }
+  .hz-u  { background:#431407; color:#fb923c; }
+  .hz-s  { background:#450a0a; color:#f87171; }
   .horizon-label { font-size:0.72rem; color:#94a3b8; white-space:nowrap; }
   #horizon-select { background:#0f172a; color:#e2e8f0; border:1px solid #4f5b8a; border-radius:5px; padding:3px 10px; font-size:0.78rem; cursor:pointer; flex:1; }
   #horizon-select:focus { outline:none; border-color:#6366f1; }
@@ -270,6 +278,7 @@
         <th>Sector</th>
         <th class="num">Score</th>
         <th>Label</th>
+        <th>Horizons</th>
         <th class="num">Momentum</th>
         <th class="num">Quality</th>
         <th class="num">Valuation</th>
@@ -469,6 +478,30 @@ function computeLabel(s) {
   return 'Sell';
 }
 
+function computeScore(d, weights) {
+  const total = Object.values(weights).reduce((a, b) => a + b, 0) || 1;
+  return Math.round((
+    d.momentum    * weights.momentum    / total +
+    d.fundamental * weights.fundamental / total +
+    d.valuation   * weights.valuation   / total +
+    d.guru        * weights.guru        / total +
+    d.analyst     * weights.analyst     / total +
+    (d.sentiment ?? 50) * weights.sentiment / total
+  ) * 10) / 10;
+}
+
+const HZ_CSS = { 'Strong Buy':'hz-sb', 'Buy':'hz-b', 'Hold':'hz-h', 'Underperform':'hz-u', 'Sell':'hz-s' };
+
+function horizonBadges(d) {
+  return ['3m','6m','1y'].map(key => {
+    const s   = computeScore(d, HORIZON_PRESETS[key]);
+    const lbl = computeLabel(s);
+    const cls = HZ_CSS[lbl] || 'hz-h';
+    const tag = key === '3m' ? '3M' : key === '6m' ? '6M' : '1Y';
+    return `<span class="hz-badge ${cls}" title="${tag}: ${lbl} (${s})">${tag}</span>`;
+  }).join('');
+}
+
 function getNormWeights() {
   const raw = {};
   document.querySelectorAll('.weight-slider').forEach(sl => { raw[sl.dataset.signal] = parseFloat(sl.value); });
@@ -551,6 +584,7 @@ function buildTable(data) {
         </div>
       </td>
       <td>${labelBadge(d.label)}</td>
+      <td><div class="hz-wrap">${horizonBadges(d)}</div></td>
       <td class="num" data-order="${d.momentum}">${subPill('Momentum', d.momentum)}</td>
       <td class="num" data-order="${d.fundamental}">${subPill('Quality', d.fundamental)}</td>
       <td class="num" data-order="${d.valuation}">${subPill('Valuation', d.valuation)}</td>
