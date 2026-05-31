@@ -31,7 +31,10 @@
   .sum-card.total     .sum-val { color: #818cf8; }
 
   /* toolbar */
-  #toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  #toolbar { display: flex; flex-direction: column; gap: 6px; }
+  .toolbar-r1 { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .toolbar-r2 { display: flex; gap: 8px; align-items: center; }
+  .toolbar-r2 #last-computed { margin-left: auto; font-size: 0.72rem; color: #475569; white-space: nowrap; }
   #toolbar input { background: #1a1d27; border: 1px solid #2d3148; color: #e2e8f0; padding: 6px 12px; border-radius: 6px; font-size: 0.83rem; min-width: 220px; outline: none; }
   #toolbar input:focus { border-color: #3730a3; }
   #label-filter { display: flex; gap: 6px; }
@@ -204,19 +207,23 @@
         <div class="sum-card sell"       data-label="Sell">       <span class="sum-label">Sell</span>         <span class="sum-val" id="s-s">—</span></div>
       </div>
       <div id="toolbar">
-        <input id="search-box" type="text" placeholder="Search ticker or company…">
-        <div id="label-filter">
-          <button class="lf-btn active" data-label="">All</button>
-          <button class="lf-btn" data-label="Strong Buy">Strong Buy</button>
-          <button class="lf-btn" data-label="Buy">Buy</button>
-          <button class="lf-btn" data-label="Hold">Hold</button>
-          <button class="lf-btn" data-label="Underperform">Underperform</button>
-          <button class="lf-btn" data-label="Sell">Sell</button>
+        <div class="toolbar-r1">
+          <input id="search-box" type="text" placeholder="Search ticker or company…">
+          <div id="label-filter">
+            <button class="lf-btn active" data-label="">All</button>
+            <button class="lf-btn" data-label="Strong Buy">Strong Buy</button>
+            <button class="lf-btn" data-label="Buy">Buy</button>
+            <button class="lf-btn" data-label="Hold">Hold</button>
+            <button class="lf-btn" data-label="Underperform">Underperform</button>
+            <button class="lf-btn" data-label="Sell">Sell</button>
+          </div>
         </div>
-        <button id="refresh-btn">⟳ Refresh</button>
-        <button id="sentiment-run-btn">⚡ Sentiment</button>
+        <div class="toolbar-r2">
+          <button id="refresh-btn">⟳ Refresh</button>
+          <button id="sentiment-run-btn">⚡ Sentiment</button>
+          <span id="last-computed"></span>
+        </div>
       </div>
-      <span id="last-computed" style="font-size:0.72rem;color:#475569;white-space:nowrap;padding-left:2px;"></span>
     </div>
 
     <div id="weight-panel">
