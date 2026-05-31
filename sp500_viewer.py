@@ -786,7 +786,7 @@ def _load_guru_rules_from_db() -> dict:
 def _db_save_holdings(slug: str, filing_date: str, holdings: list, source: str = '13f'):
     """Persist holdings for (slug, filing_date); keep at most 2 filings per guru."""
     from sqlalchemy import text as sql_text
-    from datetime import datetime
+    from datetime import datetime, timezone
     try:
         engine = get_engine()
         with engine.connect() as conn:
@@ -795,7 +795,7 @@ def _db_save_holdings(slug: str, filing_date: str, holdings: list, source: str =
                 INSERT INTO guru_filing_meta (slug, filing_date, fetched_at, source)
                 VALUES (:slug, :fd, :now, :src)
                 ON DUPLICATE KEY UPDATE fetched_at=VALUES(fetched_at), source=VALUES(source)
-            """), {"slug": slug, "fd": filing_date, "now": datetime.utcnow(), "src": source})
+            """), {"slug": slug, "fd": filing_date, "now": datetime.now(timezone.utc).replace(tzinfo=None), "src": source})
 
             # Replace holdings for this filing date only (safe re-fetch)
             conn.execute(sql_text(
@@ -841,7 +841,7 @@ def _db_save_holdings(slug: str, filing_date: str, holdings: list, source: str =
 def _db_load_holdings(slug: str) -> tuple[list | None, str | None]:
     """Load latest filing from DB. Returns (None, None) if missing or older than _DB_GURU_TTL."""
     from sqlalchemy import text as sql_text
-    from datetime import datetime
+    from datetime import datetime, timezone
     try:
         engine = get_engine()
         with engine.connect() as conn:
@@ -852,7 +852,7 @@ def _db_load_holdings(slug: str) -> tuple[list | None, str | None]:
             if not meta:
                 return None, None
             filing_date, fetched_at = meta
-            if (datetime.utcnow() - fetched_at).total_seconds() > _DB_GURU_TTL:
+            if (datetime.now(timezone.utc).replace(tzinfo=None) - fetched_at).total_seconds() > _DB_GURU_TTL:
                 return None, None
             rows = conn.execute(sql_text("""
                 SELECT name, cusip, ticker, put_call, value, shares, weight, change_tag
@@ -971,7 +971,9 @@ def _parse_info_table(text: str) -> list:
                 raw_value = int(float(val_str))
             except ValueError:
                 raw_value = 0
-            shrs_el = info.find(f'{ns}shrsOrPrnAmt') or info.find('shrsOrPrnAmt')
+            shrs_el = info.find(f'{ns}shrsOrPrnAmt')
+            if shrs_el is None:
+                shrs_el = info.find('shrsOrPrnAmt')
             shares = 0
             if shrs_el is not None:
                 try:
