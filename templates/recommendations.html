@@ -31,7 +31,7 @@
   .sum-card.total     .sum-val { color: #818cf8; }
 
   /* toolbar */
-  #toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+  #toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   #toolbar input { background: #1a1d27; border: 1px solid #2d3148; color: #e2e8f0; padding: 6px 12px; border-radius: 6px; font-size: 0.83rem; min-width: 220px; outline: none; }
   #toolbar input:focus { border-color: #3730a3; }
   #label-filter { display: flex; gap: 6px; }
@@ -96,7 +96,8 @@
 
   /* weight panel */
   #summary-bar { align-items: flex-start; }
-  .sum-cards { display: flex; gap: 12px; flex-wrap: wrap; }
+  .left-col { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
+  .sum-cards { display: flex; gap: 10px; flex-wrap: wrap; }
   #weight-panel { flex: 1; min-width: 340px; background: #1a1d27; border: 1px solid #2d3148; border-radius: 8px; padding: 12px 16px; }
   .wp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; gap: 8px; }
   .wp-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: .06em; color: #64748b; display: flex; align-items: center; gap: 6px; }
@@ -193,13 +194,29 @@
 
 <div id="page-wrap">
   <div id="summary-bar">
-    <div class="sum-cards">
-      <div class="sum-card total"      data-label="">            <span class="sum-label">Total Scored</span> <span class="sum-val" id="s-total">—</span></div>
-      <div class="sum-card strong-buy" data-label="Strong Buy"> <span class="sum-label">Strong Buy</span>   <span class="sum-val" id="s-sb">—</span></div>
-      <div class="sum-card buy"        data-label="Buy">        <span class="sum-label">Buy</span>          <span class="sum-val" id="s-b">—</span></div>
-      <div class="sum-card hold"       data-label="Hold">       <span class="sum-label">Hold</span>         <span class="sum-val" id="s-h">—</span></div>
-      <div class="sum-card under"      data-label="Underperform"><span class="sum-label">Underperform</span><span class="sum-val" id="s-u">—</span></div>
-      <div class="sum-card sell"       data-label="Sell">       <span class="sum-label">Sell</span>         <span class="sum-val" id="s-s">—</span></div>
+    <div class="left-col">
+      <div class="sum-cards">
+        <div class="sum-card total"      data-label="">            <span class="sum-label">Total Scored</span> <span class="sum-val" id="s-total">—</span></div>
+        <div class="sum-card strong-buy" data-label="Strong Buy"> <span class="sum-label">Strong Buy</span>   <span class="sum-val" id="s-sb">—</span></div>
+        <div class="sum-card buy"        data-label="Buy">        <span class="sum-label">Buy</span>          <span class="sum-val" id="s-b">—</span></div>
+        <div class="sum-card hold"       data-label="Hold">       <span class="sum-label">Hold</span>         <span class="sum-val" id="s-h">—</span></div>
+        <div class="sum-card under"      data-label="Underperform"><span class="sum-label">Underperform</span><span class="sum-val" id="s-u">—</span></div>
+        <div class="sum-card sell"       data-label="Sell">       <span class="sum-label">Sell</span>         <span class="sum-val" id="s-s">—</span></div>
+      </div>
+      <div id="toolbar">
+        <input id="search-box" type="text" placeholder="Search ticker or company…">
+        <div id="label-filter">
+          <button class="lf-btn active" data-label="">All</button>
+          <button class="lf-btn" data-label="Strong Buy">Strong Buy</button>
+          <button class="lf-btn" data-label="Buy">Buy</button>
+          <button class="lf-btn" data-label="Hold">Hold</button>
+          <button class="lf-btn" data-label="Underperform">Underperform</button>
+          <button class="lf-btn" data-label="Sell">Sell</button>
+        </div>
+        <span id="last-computed"></span>
+        <button id="refresh-btn">⟳ Refresh</button>
+        <button id="sentiment-run-btn">⚡ Sentiment</button>
+      </div>
     </div>
 
     <div id="weight-panel">
@@ -252,21 +269,6 @@
       </div>
       <div id="sentiment-status" style="margin-top:8px;font-size:0.68rem;color:#334155;">Sentiment: loading…</div>
     </div>
-  </div>
-
-  <div id="toolbar">
-    <input id="search-box" type="text" placeholder="Search ticker or company…">
-    <div id="label-filter">
-      <button class="lf-btn active" data-label="">All</button>
-      <button class="lf-btn" data-label="Strong Buy">Strong Buy</button>
-      <button class="lf-btn" data-label="Buy">Buy</button>
-      <button class="lf-btn" data-label="Hold">Hold</button>
-      <button class="lf-btn" data-label="Underperform">Underperform</button>
-      <button class="lf-btn" data-label="Sell">Sell</button>
-    </div>
-    <span id="last-computed"></span>
-    <button id="refresh-btn">⟳ Refresh Scores</button>
-    <button id="sentiment-run-btn">⚡ Run Sentiment</button>
   </div>
 
   <div class="table-wrap">
