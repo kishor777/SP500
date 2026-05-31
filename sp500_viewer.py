@@ -17,6 +17,7 @@ logging.getLogger("sqlalchemy").setLevel(logging.ERROR)
 import numpy as np
 import pandas as pd
 from flask import Flask, jsonify, render_template_string, request
+from flask_limiter import Limiter
 from db_config import (get_engine, create_guru_tables, create_guru_rules_table,
                        migrate_guru_tables, create_intraday_table,
                        create_screener_filters_table, create_vol_trades_table,
@@ -41,6 +42,11 @@ from config import (
 )
 
 app = Flask(__name__)
+
+def _client_ip():
+    return request.headers.get("X-Forwarded-For", request.remote_addr or "127.0.0.1").split(",")[0].strip()
+
+limiter = Limiter(key_func=_client_ip, app=app, default_limits=["200 per minute"], storage_uri="memory://")
 
 # ── info — load from MySQL ────────────────────────────────────────────────────
 def _load_info() -> pd.DataFrame:
@@ -1466,6 +1472,7 @@ def screener_meta_route():
 
 
 @app.post("/api/screener/run")
+@limiter.limit("60 per minute")
 def screener_run():
     body = request.get_json(force=True)
     mask = pd.Series(True, index=df.index)
@@ -1748,6 +1755,7 @@ def guru_screener_rules(slug):
 
 
 @app.get("/api/guru/<slug>/holdings")
+@limiter.limit("20 per minute")
 def guru_holdings_route(slug):
     if slug not in GURUS:
         return jsonify({"error": "Unknown guru"}), 404
@@ -1772,6 +1780,7 @@ def guru_holdings_route(slug):
 
 
 @app.get("/api/guru/<slug>/screen")
+@limiter.limit("30 per minute")
 def guru_screen_route(slug):
     if slug not in GURUS:
         return jsonify({"error": "Unknown guru"}), 404
@@ -2072,6 +2081,7 @@ def recommendations_page():
 
 
 @app.get("/api/recommendations")
+@limiter.limit("30 per minute")
 def recommendations_api():
     return jsonify(_get_recommendations())
 
@@ -2082,6 +2092,7 @@ def sentiment_status_api():
 
 
 @app.post("/api/sentiment/run")
+@limiter.limit("5 per minute")
 def sentiment_run_api():
     """Trigger an on-demand sentiment pass for current top/bottom 20 tickers."""
     from sentiment_engine import _sentiment_running
@@ -2100,6 +2111,7 @@ def sentiment_run_api():
 
 
 @app.get("/api/sentiment/test/<ticker>")
+@limiter.limit("10 per minute")
 def sentiment_test_api(ticker):
     """Diagnostic: raw connectivity probe for StockTwits and Yahoo Finance RSS."""
     import requests as _req
