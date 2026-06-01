@@ -197,3 +197,131 @@ Prompts used to build the S&P 500 / Guru Investing application
      _strip_punct_re, _13F_ABBREV, _TICKER_OVERRIDES, _norm, _TICKER_OVERRIDES_NORM).
      sp500_viewer.py reduced from 6213 → 5512 lines. Uses Python module (not INI .cfg) because
      the data structures require Python syntax (nested dicts, sets, compiled regexes, ZoneInfo).]
+
+49. Architectural review — what improvements can be made to make the app secure, stable,
+    and performant?
+    [Identified 10 improvements across 3 dimensions. Security: no auth on write endpoints,
+     potential SQL injection on dynamic columns, no rate limiting. Stability: 4,900-line monolith,
+     unmonitored daemon threads, in-memory state lost on deploy, FinBERT lazy-load. Performance:
+     hist_by_ticker in RAM, single-worker ceiling, no CDN. Ranked by impact with effort estimates.]
+
+50. Fix: No rate limiting on expensive routes — /api/recommendations, /api/guru/<slug>/analyze,
+    intraday fetch — all unbounded.
+    [Added Flask-Limiter>=3.5 to requirements.txt. Added _client_ip() helper for Railway
+     X-Forwarded-For proxy header. Created limiter instance with storage_uri="memory://" and
+     global default 200/min. Applied per-route limits: /api/screener/run 60/min,
+     /api/guru/<slug>/holdings 20/min, /api/guru/<slug>/screen 30/min,
+     /api/recommendations 30/min, /api/sentiment/run 5/min,
+     /api/sentiment/test/<ticker> 10/min.]
+
+51. Auth middleware on write endpoints — add simple shared-secret middleware.
+    [Added session + redirect to Flask imports. Added os, functools.wraps imports.
+     Set app.config["SECRET_KEY"] from FLASK_SECRET_KEY env var (falls back to os.urandom).
+     Read _ADMIN_SECRET from ADMIN_SECRET env var. Created require_auth decorator (checks
+     session["authed"], returns 401 JSON if not set and secret is configured). Created
+     _global_auth before_request hook that redirects unauthenticated page requests to
+     /admin/login and returns 401 JSON for unauthenticated API requests. Added minimal
+     /admin/login HTML form page and POST /api/admin/login + GET /api/admin/logout routes.
+     Applied @require_auth to 5 write endpoints: POST/DELETE saved-filters, POST screener/run,
+     POST sentiment/run, DELETE recommendations.]
+
+52. Was there supposed to be a login screen after recent change?
+    [Clarified: /admin/login is intentional and new. GET routes remain fully public.
+     Added GET /api/admin/login redirect to /admin/login so hitting that URL in the browser
+     does not return 405.]
+
+53. Suggest a FLASK_SECRET_KEY.
+    [Generated via secrets.token_hex(32).]
+
+54. How will the behaviour be in my dev environment?
+    [Explained: if ADMIN_SECRET env var is not set, _ADMIN_SECRET is "" (falsy) so
+     require_auth decorator is a no-op — everything works exactly as before locally.]
+
+55. Getting Error 405 for /api/admin/login.
+    [User was hitting the POST-only endpoint directly in browser (GET). Added
+     @app.get("/api/admin/login") redirect to /admin/login so browser navigation works.]
+
+56. Login screen shows "Incorrect password" even though Railway env var matches.
+    [Added .strip() to _ADMIN_SECRET = os.environ.get("ADMIN_SECRET", "").strip() to
+     handle trailing whitespace in Railway env var editor. Added startup log line
+     print(f"[auth] ADMIN_SECRET length={len(_ADMIN_SECRET)} set={bool(_ADMIN_SECRET)}")
+     to diagnose without exposing the value.]
+
+57. Can still access main screen without login — extend auth to all routes.
+    [Added _global_auth before_request hook with path-based public-path check
+     (_PUBLIC_PATHS set). Now all page routes redirect to /admin/login when not
+     authenticated; all API routes return 401 JSON. /health and /admin/* are exempt.]
+
+58. Push the code changes to git.
+    [Committed "Auth: extend global_auth before_request to protect all routes" and pushed.]
+
+59. Why do I need Redis for shared cache? Is it free with Railway hosting?
+    [Explained: in-memory caches (_reco_cache, _holdings_cache, hist_by_ticker) are wiped
+     on every redeploy causing cold-start latency. Redis survives restarts. Railway Redis
+     plugin costs ~$5-6/month — no free tier. Recommended deferring Redis for now given
+     single-worker setup and infrequent deploys.]
+
+60. Add /health endpoint with thread heartbeat.
+    [Added "epoch": 0.0 key to _last_refresh dict. Updated _price_refresh_loop to set
+     epoch=time.time() on each successful refresh. Added "health" to _LOGIN_ENDPOINTS
+     to exempt from auth. Added GET /health route: checks _refresh_thread.is_alive(),
+     computes age_sec from epoch, returns degraded/ok with 503/200 based on thread liveness
+     and staleness (> 2× refresh_interval during market hours). Committed and pushed.]
+
+61. Railway health check settings — is /health path + 600s timeout OK?
+    [Confirmed correct. Explained 600s is deploy-time timeout (not production polling interval).
+     App returns 200 quickly after boot because epoch=0.0 is falsy so stale check is skipped.
+     Advised setting Railway Restart Policy to also restart on failure for full self-healing.]
+
+62. Railway restart policy shows "On Failure" with retry 5. Is that sufficient?
+    [Explained "On Failure" covers process crashes but NOT silent thread death. Recommended
+     UptimeRobot (free) to poll /health every 5 minutes and alert on 503 for the gap.]
+
+63. Create UptimeRobot pointing at /health.
+    [Cannot create external accounts on behalf of user. Provided step-by-step instructions:
+     uptimerobot.com → Add Monitor → HTTPS type → URL = /health → 5 min interval →
+     alert to kishor77@gmail.com.]
+
+64. SQL injection audit on dynamic columns.
+    [Full audit performed. Finding: no SQL injection vulnerabilities — all DB queries use
+     parameterized :param bindings; slug/ticker/fid values all validated against whitelists
+     before reaching SQL. Two related issues fixed: (1) Open redirect in /api/admin/login
+     next_url param — added check that next_url starts with / and not //. (2) No ticker
+     format validation in /api/sentiment/test/<ticker> and /api/history/<ticker>?interval=5m —
+     added _VALID_TICKER = re.compile(r"^[A-Z0-9.]{1,10}$") and applied to both routes.
+     Committed and pushed.]
+
+65. Phase 1 refactor — extract HTML templates to templates/ directory.
+    [Extracted 7 HTML template strings (3,783 lines total) from sp500_viewer.py into
+     templates/ directory: main.html (528), screener.html (1124), stock_picks.html (371),
+     leaderboard.html (280), gurus.html (711), recommendations.html (747), login.html (22).
+     Replaced all render_template_string() calls with render_template(). Removed
+     render_template_string from Flask imports. sp500_viewer.py: 6,052 → 2,269 lines (-63%).
+     Committed and pushed.]
+
+66. Fix DeprecationWarnings: datetime.utcnow() and XML element truth test.
+    [Fixed 3 deprecation warnings: (1) XML element or-chain shrsOrPrnAmt — replaced
+     elem or elem with explicit if shrs_el is None check. (2) datetime.utcnow() in
+     _db_save_holdings — replaced with datetime.now(timezone.utc).replace(tzinfo=None).
+     (3) datetime.utcnow() in _db_load_holdings — same replacement; fetched_at from MySQL
+     is naive so no tzinfo needed on that side. Committed and pushed.]
+
+67. Phase 2 + Phase 3 — create state.py and Blueprint refactor.
+    [Phase 2: Created state.py (37 lines) with all 14 shared mutable variables (df,
+     hist_by_ticker, _name_to_ticker, _last_refresh, _hist_backfill_status,
+     _vol_trade_buy/sell_date, _refresh/_backfill_thread, _holdings_cache,
+     _optimized_rules_cache, _reco_cache, _s_num_meta/_s_cat_meta/_s_group_order,
+     _GURU_SHORT/_GURU_COLOR). Created extensions.py (41 lines) with limiter (init_app
+     pattern), _ADMIN_SECRET, require_auth decorator, init_auth() function that registers
+     global before_request hook via path-based check.
+     Phase 3: Created helpers.py (210), edgar.py (456), workers.py (338) and 5 blueprints:
+     admin (35), market_data (81), screener (302), guru (295), recommendations (269).
+     Rewrote sp500_viewer.py as 88-line app factory: creates Flask app, calls limiter.init_app,
+     init_auth, registers blueprints, loads data into state, starts workers.
+     All 30 routes preserved. Zero functional changes. Committed and pushed.]
+
+Selection of Strong Buy or buttons in same row dont show filtered content even though there are 2t tickers matching filter. Fix it.
+I dont experience a change - Still same behaviour.
+Great Job - This is fixed now.
+
+OK now another issue. This is inaccurate. Although tickers are right and vol ratio is also correct. Today chg is incorrect and you need to look into formula looks like you are comparing it with wrong or older data.

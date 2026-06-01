@@ -58,6 +58,17 @@ def volume_analysis_api():
         intra_map = {r.ticker: {"vol_today": int(r.vol_today), "last_close": float(r.last_close)}
                      for r in intra_rows}
 
+        prev_close_rows = conn.execute(_t("""
+            SELECT i.ticker, i.close AS prev_close
+            FROM sp500_intraday i
+            INNER JOIN (
+                SELECT ticker, MAX(dt) AS max_dt
+                FROM sp500_intraday WHERE DATE(dt) < CURDATE()
+                GROUP BY ticker
+            ) prev ON i.ticker = prev.ticker AND i.dt = prev.max_dt
+        """)).fetchall()
+        prev_close_map = {r.ticker: float(r.prev_close) for r in prev_close_rows}
+
         info_rows = conn.execute(_t("""
             SELECT ticker, longName, sector, earningsTimestampStart FROM sp500_info
         """)).fetchall()
@@ -78,10 +89,8 @@ def volume_analysis_api():
         _expected = vol_1m * _prorate if vol_1m else None
         abnormal  = bool(vol_today and _expected and vol_today > 2 * _expected)
         vol_ratio = round(vol_today / _expected, 1) if (vol_today and _expected) else None
-        hist_rows = state.hist_by_ticker.get(ticker) or []
-        prev_close = next((r["close"] for r in reversed(hist_rows)
-                           if r["time"] < today_str and r["close"] > 0), None)
         live = im.get("last_close")
+        prev_close = prev_close_map.get(ticker)
         d1 = round((live - prev_close) / prev_close * 100, 2) if live and prev_close else None
         result.append({
             "ticker":       ticker,
@@ -174,7 +183,6 @@ def vol_trades_api():
             SELECT id, trade_date, ticker, buy_time, buy_price, amount_usd,
                    sell_time, sell_price, pnl_dollar, pnl_pct, status
             FROM vol_trades
-            WHERE trade_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
             ORDER BY trade_date DESC, id DESC
         """)).fetchall()
         s = conn.execute(_t("""

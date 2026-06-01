@@ -35,8 +35,10 @@ _NYSE_HOLIDAYS = {
 
 SCHEDULER_CONFIG = {
     "refresh_interval_sec":    300,   # price-refresh cadence (seconds)
-    "vol_trade_buy_hour":       10,   # ET hour to trigger paper buy  (>=)
-    "vol_trade_sell_hour":      14,   # ET hour to trigger paper sell (>=)
+    "vol_trade_buy_hour":        9,   # ET hour   to trigger paper buy  (>=)
+    "vol_trade_buy_minute":     50,   # ET minute to trigger paper buy  (>=)
+    "vol_trade_sell_hour":      15,   # ET hour   to trigger paper sell (>=)
+    "vol_trade_sell_minute":    55,   # ET minute to trigger paper sell (>=)
     "intraday_batch_size":      50,   # tickers per yfinance batch
     "intraday_backfill_days":   60,   # how far back to fetch 5-min bars
     "intraday_skip_threshold": 1000,  # skip backfill if DB already has this many rows

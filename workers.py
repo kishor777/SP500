@@ -131,6 +131,19 @@ def _history_backfill_2y():
 
 
 # ── Paper trades ───────────────────────────────────────────────────────────────
+def _compute_quality(metrics: dict) -> dict:
+    """Return quality percentile score (0-100) per ticker across 4 fundamental metrics."""
+    quality = {}
+    counts  = {}
+    for col_idx in range(4):
+        vals = [(tk, v[col_idx]) for tk, v in metrics.items() if v[col_idx] is not None]
+        vals.sort(key=lambda x: x[1])
+        for rank, (tk, _) in enumerate(vals):
+            quality[tk] = quality.get(tk, 0) + (rank / len(vals) * 100)
+            counts[tk]  = counts.get(tk, 0) + 1
+    return {tk: round(quality[tk] / counts[tk], 1) for tk in quality}
+
+
 def _vol_trade_buy(today_str: str):
     from sqlalchemy import text as _t
 
@@ -169,6 +182,26 @@ def _vol_trade_buy(today_str: str):
             """)).fetchall()
             intra_map = {r.ticker: {"vol_today": int(r.vol_today), "last_close": float(r.last_close)}
                          for r in intra_rows}
+
+            prev_close_rows = conn.execute(_t("""
+                SELECT i.ticker, i.close AS prev_close
+                FROM sp500_intraday i
+                INNER JOIN (
+                    SELECT ticker, MAX(dt) AS max_dt
+                    FROM sp500_intraday WHERE DATE(dt) < CURDATE()
+                    GROUP BY ticker
+                ) prev ON i.ticker = prev.ticker AND i.dt = prev.max_dt
+            """)).fetchall()
+            prev_close_map = {r.ticker: float(r.prev_close) for r in prev_close_rows}
+
+            # Quality filter: compute percentile rank across 4 metrics, keep >= 70
+            qrows = conn.execute(_t(
+                "SELECT ticker, returnOnEquity, profitMargins, grossMargins, operatingMargins "
+                "FROM sp500_info"
+            )).fetchall()
+        quality_map = _compute_quality({r.ticker: [r.returnOnEquity, r.profitMargins,
+                                                    r.grossMargins, r.operatingMargins]
+                                         for r in qrows})
     except Exception as e:
         print(f"[vol-trades] buy data query error: {e}")
         return
@@ -182,6 +215,8 @@ def _vol_trade_buy(today_str: str):
     candidates = []
     for ticker in list(state.df.index):
         ticker = str(ticker)
+        if quality_map.get(ticker, 0) < 70:
+            continue
         vol_1m = vol_1m_map.get(ticker)
         im = intra_map.get(ticker, {})
         vol_today = im.get("vol_today")
@@ -189,9 +224,7 @@ def _vol_trade_buy(today_str: str):
         expected = vol_1m * prorate if vol_1m else None
         if not (vol_today and expected and vol_today > 2 * expected and live):
             continue
-        hist_rows = state.hist_by_ticker.get(ticker) or []
-        prev_close = next((r["close"] for r in reversed(hist_rows)
-                           if r["time"] < today_str and r["close"] > 0), None)
+        prev_close = prev_close_map.get(ticker)
         d1 = (live - prev_close) / prev_close * 100 if live and prev_close else None
         if d1 is None or d1 <= 0:
             continue
@@ -306,10 +339,13 @@ def _price_refresh_loop():
 
             _td = _date.today().isoformat()
             _now_et = _dt.now(_NYSE_TZ)
-            if _now_et.hour >= SCHEDULER_CONFIG["vol_trade_buy_hour"] and state._vol_trade_buy_date != _td:
+            _now_min  = _now_et.hour * 60 + _now_et.minute
+            _buy_min  = SCHEDULER_CONFIG["vol_trade_buy_hour"]  * 60 + SCHEDULER_CONFIG["vol_trade_buy_minute"]
+            _sell_min = SCHEDULER_CONFIG["vol_trade_sell_hour"] * 60 + SCHEDULER_CONFIG["vol_trade_sell_minute"]
+            if _now_min >= _buy_min and state._vol_trade_buy_date != _td:
                 _vol_trade_buy(_td)
                 state._vol_trade_buy_date = _td
-            if _now_et.hour >= SCHEDULER_CONFIG["vol_trade_sell_hour"] and state._vol_trade_sell_date != _td:
+            if _now_min >= _sell_min and state._vol_trade_sell_date != _td:
                 _vol_trade_sell(_td)
                 state._vol_trade_sell_date = _td
 
