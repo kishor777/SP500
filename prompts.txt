@@ -331,3 +331,5 @@ I want to add my personal portfolio in this app - how can i securely add it so t
 I dont need sector and cost basis. add a new column Claude Rec. The column is dynamically calculated once a day and afterwards on refresh. This shall be populated with Buy, Hold or Sale based on Claude acting as Review of that ticker as charlie munger applying his rules (40%), analyzing all associated data (40%) and momentum (20%).
 
 OK implement a import button to accept holdings-report-2026-06-02.csv and map it to Portfolio Table.
+
+OK Good import did work - Few problem though. Claude Rec dont work in dev environment or in railway. Price is not live for today. Notes column should be editable in table. Add Column if stock belongs to US or Canada after Company - It shall be based on if Market Price is in USD or CAD.

@@ -410,7 +410,7 @@ function mapImportRows(rawRows) {
   const cTicker = findCol(s,'Symbol','Ticker');
   const cQty    = findCol(s,'Quantity','Qty','Shares');
   const cBook   = findCol(s,'Book Value (Market)','Book Value(Market)','BookValueMarket','Book Value');
-  const cCur    = findCol(s,'Book Value Currency (Market)','Market Price Currency','Currency');
+  const cCur    = findCol(s,'Market Price Currency','Book Value Currency (Market)','Currency');
   const cName   = findCol(s,'Name','Description');
   const cSec    = findCol(s,'Security Type','SecurityType','Type');
   const cDir    = findCol(s,'Position Direction','Direction','Side');
