@@ -325,3 +325,5 @@ I dont experience a change - Still same behaviour.
 Great Job - This is fixed now.
 
 OK now another issue. This is inaccurate. Although tickers are right and vol ratio is also correct. Today chg is incorrect and you need to look into formula looks like you are comparing it with wrong or older data.
+
+I want to add my personal portfolio in this app - how can i securely add it so that others users accessing this platform cant see it?
