@@ -253,6 +253,7 @@ def migrate_portfolio_table():
         ("claude_rec",        "VARCHAR(10)"),
         ("claude_rec_date",   "DATE"),
         ("claude_rec_reason", "VARCHAR(500)"),
+        ("market_currency",   "VARCHAR(3) NOT NULL DEFAULT 'USD'"),
     ]
     with engine.connect() as conn:
         for col, defn in new_cols:

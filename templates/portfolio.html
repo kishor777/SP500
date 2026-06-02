@@ -16,7 +16,6 @@
 
   #page-wrap { flex: 1; padding: 16px 20px; }
 
-  /* summary cards */
   .summary-bar { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
   .sum-card { background: #1a1d27; border: 1px solid #2d3148; border-radius: 8px; padding: 10px 16px; min-width: 130px; }
   .sum-card .sum-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: .06em; color: #64748b; margin-bottom: 2px; }
@@ -25,10 +24,11 @@
   .sum-card .sum-val.neg { color: #f87171; }
   .sum-card .sum-val.purple { color: #818cf8; }
 
-  /* toolbar */
   .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
-  #add-btn  { background: #3730a3; border: none; color: #fff; padding: 6px 16px; border-radius: 6px; font-size: 0.82rem; cursor: pointer; font-weight: 600; }
+  #add-btn    { background: #3730a3; border: none; color: #fff; padding: 6px 16px; border-radius: 6px; font-size: 0.82rem; cursor: pointer; font-weight: 600; }
   #add-btn:hover { background: #4338ca; }
+  #import-btn { background: #1e2235; border: 1px solid #2d3148; color: #94a3b8; padding: 6px 14px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; }
+  #import-btn:hover { color: #e2e8f0; }
   #refresh-btn { background: #1e2235; border: 1px solid #2d3148; color: #94a3b8; padding: 6px 14px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; }
   #refresh-btn:hover { color: #e2e8f0; }
   #rec-btn { background: #1e1b4b; border: 1px solid #3730a3; color: #818cf8; padding: 6px 14px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; }
@@ -36,7 +36,6 @@
   #rec-btn:disabled { opacity: 0.45; cursor: not-allowed; }
   #last-updated { font-size: 0.72rem; color: #475569; }
 
-  /* table */
   .table-wrap { background: #131620; border: 1px solid #2d3148; border-radius: 10px; overflow: hidden; }
   table.dataTable { width: 100% !important; border-collapse: collapse; }
   table.dataTable thead th { background: #1a1d27; color: #64748b; font-size: 0.72rem; text-transform: uppercase; letter-spacing: .06em; padding: 10px 12px; border-bottom: 1px solid #2d3148; white-space: nowrap; cursor: pointer; }
@@ -50,59 +49,66 @@
   .dataTables_wrapper .paginate_button.current { background: #3730a3 !important; color: #fff !important; border: none !important; }
 
   .ticker-sym { font-weight: 700; color: #818cf8; font-family: monospace; font-size: 0.9rem; }
+  .country-us  { background: #1e2235; color: #60a5fa; padding: 2px 7px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+  .country-ca  { background: #1e2235; color: #f87171; padding: 2px 7px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
   .pos { color: #34d399; }
   .neg { color: #f87171; }
   .neu { color: #64748b; }
-  .notes-cell { max-width: 140px; overflow: hidden; text-overflow: ellipsis; color: #64748b; font-size: 0.75rem; }
-  .act-btn { background: none; border: 1px solid #2d3148; color: #64748b; padding: 3px 9px; border-radius: 4px; font-size: 0.72rem; cursor: pointer; margin-left: 3px; }
-  .act-btn:hover { border-color: #4f5b8a; color: #e2e8f0; }
-  .act-btn.del:hover { border-color: #f87171; color: #f87171; }
+
+  /* Inline notes editing */
+  .notes-edit { display: inline-block; min-width: 60px; max-width: 160px; color: #64748b; font-size: 0.75rem; outline: none; cursor: text; border-radius: 3px; padding: 1px 3px; overflow: hidden; text-overflow: ellipsis; }
+  .notes-edit:focus { background: #1e2235; color: #e2e8f0; box-shadow: 0 0 0 1px #3730a3; }
+  .notes-edit:empty::before { content: attr(data-placeholder); color: #334155; font-style: italic; pointer-events: none; }
 
   /* Claude Rec badges */
   .rec-buy  { background: #064e3b; color: #34d399; padding: 3px 9px; border-radius: 5px; font-size: 0.72rem; font-weight: 700; cursor: help; }
   .rec-hold { background: #422006; color: #fbbf24; padding: 3px 9px; border-radius: 5px; font-size: 0.72rem; font-weight: 700; cursor: help; }
   .rec-sell { background: #450a0a; color: #f87171; padding: 3px 9px; border-radius: 5px; font-size: 0.72rem; font-weight: 700; cursor: help; }
-  .rec-computing { color: #475569; font-size: 0.72rem; font-style: italic; }
-  .rec-meta { font-size: 0.65rem; color: #334155; display: block; margin-top: 2px; }
+  .rec-err  { background: #1e2235; color: #f97316; padding: 3px 9px; border-radius: 5px; font-size: 0.68rem; cursor: help; }
 
-  /* import preview modal */
-  #import-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:200; }
-  #import-modal-overlay.open { display:block; }
-  #import-modal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:min(96vw,820px); max-height:85vh; background:#1a1d27; border:1px solid #2d3148; border-radius:12px; z-index:201; padding:24px; box-shadow:0 20px 60px rgba(0,0,0,.7); overflow:hidden; flex-direction:column; }
+  .act-btn { background: none; border: 1px solid #2d3148; color: #64748b; padding: 3px 9px; border-radius: 4px; font-size: 0.72rem; cursor: pointer; margin-left: 3px; }
+  .act-btn:hover { border-color: #4f5b8a; color: #e2e8f0; }
+  .act-btn.del:hover { border-color: #f87171; color: #f87171; }
+
+  /* Import preview modal */
+  #import-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:200; }
+  #import-overlay.open { display:block; }
+  #import-modal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:min(96vw,840px); max-height:85vh; background:#1a1d27; border:1px solid #2d3148; border-radius:12px; z-index:201; padding:24px; box-shadow:0 20px 60px rgba(0,0,0,.7); flex-direction:column; overflow:hidden; }
   #import-modal.open { display:flex; }
-  #import-modal-title { font-size:1rem; font-weight:700; color:#f8fafc; margin-bottom:4px; }
-  #import-modal-sub   { font-size:0.75rem; color:#475569; margin-bottom:14px; }
+  #import-title { font-size:1rem; font-weight:700; color:#f8fafc; margin-bottom:3px; }
+  #import-sub   { font-size:0.75rem; color:#475569; margin-bottom:14px; }
   #import-preview-wrap { overflow-y:auto; flex:1; border:1px solid #2d3148; border-radius:8px; }
-  #import-preview { width:100%; border-collapse:collapse; font-size:0.8rem; }
-  #import-preview thead th { background:#1a1d27; color:#64748b; font-size:0.68rem; text-transform:uppercase; letter-spacing:.05em; padding:8px 12px; border-bottom:1px solid #2d3148; white-space:nowrap; }
-  #import-preview tbody tr { border-bottom:1px solid #1e2235; }
-  #import-preview tbody tr:hover { background:#1e2235; }
-  #import-preview tbody td { padding:7px 12px; white-space:nowrap; }
+  #import-tbl { width:100%; border-collapse:collapse; font-size:0.8rem; }
+  #import-tbl thead th { background:#1a1d27; color:#64748b; font-size:0.68rem; text-transform:uppercase; padding:8px 12px; border-bottom:1px solid #2d3148; white-space:nowrap; }
+  #import-tbl tbody tr { border-bottom:1px solid #1e2235; }
+  #import-tbl tbody tr:hover { background:#1e2235; }
+  #import-tbl tbody td { padding:7px 12px; }
   .skip-row { opacity:0.4; }
   #import-footer { display:flex; align-items:center; gap:10px; margin-top:14px; flex-wrap:wrap; }
-  #import-mode  { background:#0f1117; border:1px solid #2d3148; color:#e2e8f0; padding:5px 10px; border-radius:6px; font-size:0.78rem; cursor:pointer; }
-  #import-count { font-size:0.75rem; color:#64748b; flex:1; }
-  .btn-import   { background:#059669; border:none; color:#fff; padding:7px 18px; border-radius:6px; font-size:0.82rem; cursor:pointer; font-weight:600; }
+  #import-mode-sel { background:#0f1117; border:1px solid #2d3148; color:#e2e8f0; padding:5px 10px; border-radius:6px; font-size:0.78rem; }
+  #import-count-lbl { font-size:0.75rem; color:#64748b; flex:1; }
+  #import-err-lbl   { color:#f87171; font-size:0.78rem; }
+  .btn-import { background:#059669; border:none; color:#fff; padding:7px 18px; border-radius:6px; font-size:0.82rem; cursor:pointer; font-weight:600; }
   .btn-import:hover { background:#047857; }
-  #import-error { color:#f87171; font-size:0.78rem; }
+  .btn-import:disabled { opacity:.45; cursor:not-allowed; }
 
-  /* modal */
-  #modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 100; }
-  #modal-overlay.open { display: block; }
-  #modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: min(92vw,440px); background: #1a1d27; border: 1px solid #2d3148; border-radius: 12px; z-index: 101; padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
-  #modal.open { display: block; }
-  .modal-title { font-size: 1rem; font-weight: 700; color: #f8fafc; margin-bottom: 16px; }
-  .field-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
-  .field-row label { font-size: 0.72rem; color: #64748b; text-transform: uppercase; letter-spacing: .05em; }
-  .field-row input, .field-row textarea { background: #0f1117; border: 1px solid #2d3148; color: #e2e8f0; padding: 7px 10px; border-radius: 6px; font-size: 0.84rem; outline: none; width: 100%; }
-  .field-row input:focus, .field-row textarea:focus { border-color: #6366f1; }
-  .field-row textarea { resize: vertical; min-height: 60px; font-family: inherit; }
-  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
-  .btn-primary { background: #3730a3; border: none; color: #fff; padding: 7px 18px; border-radius: 6px; font-size: 0.82rem; cursor: pointer; font-weight: 600; }
-  .btn-primary:hover { background: #4338ca; }
-  .btn-cancel  { background: #1e2235; border: 1px solid #2d3148; color: #94a3b8; padding: 7px 14px; border-radius: 6px; font-size: 0.82rem; cursor: pointer; }
-  .btn-cancel:hover { color: #e2e8f0; }
-  #modal-error { color: #f87171; font-size: 0.78rem; margin-top: 8px; display: none; }
+  /* Add/Edit modal */
+  #modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:100; }
+  #modal-overlay.open { display:block; }
+  #modal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:min(92vw,440px); background:#1a1d27; border:1px solid #2d3148; border-radius:12px; z-index:101; padding:24px; box-shadow:0 20px 60px rgba(0,0,0,.6); }
+  #modal.open { display:block; }
+  .modal-title { font-size:1rem; font-weight:700; color:#f8fafc; margin-bottom:16px; }
+  .field-row { display:flex; flex-direction:column; gap:4px; margin-bottom:12px; }
+  .field-row label { font-size:0.72rem; color:#64748b; text-transform:uppercase; letter-spacing:.05em; }
+  .field-row input, .field-row select, .field-row textarea { background:#0f1117; border:1px solid #2d3148; color:#e2e8f0; padding:7px 10px; border-radius:6px; font-size:0.84rem; outline:none; width:100%; }
+  .field-row input:focus, .field-row select:focus, .field-row textarea:focus { border-color:#6366f1; }
+  .field-row textarea { resize:vertical; min-height:60px; font-family:inherit; }
+  .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
+  .btn-primary { background:#3730a3; border:none; color:#fff; padding:7px 18px; border-radius:6px; font-size:0.82rem; cursor:pointer; font-weight:600; }
+  .btn-primary:hover { background:#4338ca; }
+  .btn-cancel  { background:#1e2235; border:1px solid #2d3148; color:#94a3b8; padding:7px 14px; border-radius:6px; font-size:0.82rem; cursor:pointer; }
+  .btn-cancel:hover { color:#e2e8f0; }
+  #modal-error { color:#f87171; font-size:0.78rem; margin-top:8px; display:none; }
 </style>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
@@ -120,7 +126,6 @@
 </header>
 
 <div id="page-wrap">
-  <!-- Summary cards -->
   <div class="summary-bar">
     <div class="sum-card"><div class="sum-label">Total Value</div><div class="sum-val purple" id="s-value">—</div></div>
     <div class="sum-card"><div class="sum-label">Total Invested</div><div class="sum-val" id="s-cost">—</div></div>
@@ -129,7 +134,6 @@
     <div class="sum-card"><div class="sum-label">Day P&amp;L</div><div class="sum-val" id="s-day">—</div></div>
   </div>
 
-  <!-- Toolbar -->
   <div class="toolbar">
     <button id="add-btn">+ Add Holding</button>
     <button id="import-btn">⬆ Import CSV</button>
@@ -139,12 +143,12 @@
     <span id="last-updated"></span>
   </div>
 
-  <!-- Holdings table -->
   <div class="table-wrap">
     <table id="port-tbl">
       <thead><tr>
         <th>Ticker</th>
         <th>Company</th>
+        <th>Market</th>
         <th class="num">Shares</th>
         <th class="num">Avg Cost</th>
         <th class="num">Price</th>
@@ -162,26 +166,26 @@
 </div>
 
 <!-- Import preview modal -->
-<div id="import-modal-overlay"></div>
+<div id="import-overlay"></div>
 <div id="import-modal">
-  <div id="import-modal-title">Import Holdings from CSV</div>
-  <div id="import-modal-sub"></div>
+  <div id="import-title">Import Holdings from CSV</div>
+  <div id="import-sub"></div>
   <div id="import-preview-wrap">
-    <table id="import-preview">
+    <table id="import-tbl">
       <thead><tr>
         <th></th><th>Ticker</th><th>Name</th><th>Shares</th>
         <th>Avg Cost</th><th>Currency</th><th>Status</th>
       </tr></thead>
-      <tbody id="import-preview-body"></tbody>
+      <tbody id="import-body"></tbody>
     </table>
   </div>
   <div id="import-footer">
-    <select id="import-mode">
+    <select id="import-mode-sel">
       <option value="merge">Merge — update existing, add new</option>
       <option value="replace">Replace all — clear portfolio first</option>
     </select>
-    <span id="import-count"></span>
-    <span id="import-error"></span>
+    <span id="import-count-lbl"></span>
+    <span id="import-err-lbl"></span>
     <button class="btn-cancel" id="import-cancel">Cancel</button>
     <button class="btn-import" id="import-confirm">Import</button>
   </div>
@@ -204,8 +208,15 @@
     <input id="f-cost" type="number" step="0.0001" placeholder="e.g. 182.50">
   </div>
   <div class="field-row">
+    <label>Currency</label>
+    <select id="f-currency">
+      <option value="USD">USD — US Stock</option>
+      <option value="CAD">CAD — Canadian Stock</option>
+    </select>
+  </div>
+  <div class="field-row">
     <label>Notes (optional)</label>
-    <textarea id="f-notes" placeholder="e.g. Long-term hold, added on earnings dip"></textarea>
+    <textarea id="f-notes" placeholder="e.g. Long-term hold"></textarea>
   </div>
   <div id="modal-error"></div>
   <div class="modal-actions">
@@ -219,55 +230,52 @@ const TODAY = new Date().toISOString().slice(0,10);
 
 const fmt = {
   dollar: v => v == null ? '—' : '$' + Number(v).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}),
-  pct:    (v, forceSign=true) => {
-    if (v == null) return '<span class="neu">—</span>';
-    const cls = v > 0 ? 'pos' : v < 0 ? 'neg' : 'neu';
-    const sign = forceSign && v > 0 ? '+' : '';
-    return `<span class="${cls}">${sign}${v.toFixed(2)}%</span>`;
-  },
+  pct:    v => { if (v == null) return '<span class="neu">—</span>'; const c = v>0?'pos':v<0?'neg':'neu'; return `<span class="${c}">${v>0?'+':''}${v.toFixed(2)}%</span>`; },
   num:    v => v == null ? '—' : Number(v).toLocaleString('en-US', {maximumFractionDigits:4}),
+  signed: v => v == null ? '—' : (v>=0?'+':'-') + '$' + Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}),
 };
+
+function countryBadge(cur) {
+  return cur === 'CAD'
+    ? '<span class="country-ca">🇨🇦 CA</span>'
+    : '<span class="country-us">🇺🇸 US</span>';
+}
 
 function recBadge(rec, reason, date) {
   if (!rec) return '<span class="neu">—</span>';
-  const cls = rec === 'Buy' ? 'rec-buy' : rec === 'Sell' ? 'rec-sell' : 'rec-hold';
-  const tip = reason ? `${reason}${date ? ' · ' + date : ''}` : (date || '');
+  const cls = rec==='Buy'?'rec-buy':rec==='Sell'?'rec-sell':'rec-hold';
+  const tip = [reason, date ? `(${date})` : ''].filter(Boolean).join(' ');
   return `<span class="${cls}" title="${tip}">${rec}</span>`;
 }
-
-function recOrder(rec) {
-  return rec === 'Buy' ? 3 : rec === 'Hold' ? 2 : rec === 'Sell' ? 1 : 0;
+function recErrBadge(reason) {
+  return `<span class="rec-err" title="${reason}">⚠ Error</span>`;
 }
+function recOrder(rec) { return rec==='Buy'?3:rec==='Hold'?2:rec==='Sell'?1:0; }
 
 let dt = null, editId = null, _holdings = [];
 
 function loadData() {
   document.getElementById('last-updated').textContent = 'Loading…';
-  fetch('/api/portfolio').then(r => r.json()).then(data => {
+  fetch('/api/portfolio').then(r=>r.json()).then(data => {
     _holdings = data.holdings;
     renderSummary(data.summary);
     renderTable(data.holdings);
     document.getElementById('last-updated').textContent = `Updated ${new Date().toLocaleTimeString()}`;
-    // Auto-fetch recs for stale/missing entries
     const stale = data.holdings.some(h => !h.claude_rec_date || h.claude_rec_date !== TODAY);
     if (stale) computeRecs(false);
-  }).catch(() => {
-    document.getElementById('last-updated').textContent = 'Error loading';
-  });
+  }).catch(() => { document.getElementById('last-updated').textContent = 'Error loading'; });
 }
 
 function renderSummary(s) {
-  const pnlCls = s.total_pnl >= 0 ? 'pos' : 'neg';
-  const dayCls = s.day_pnl  >= 0 ? 'pos' : 'neg';
-  const fmtSigned = (v, d=2) => (v >= 0 ? '+' : '') + fmt.dollar(Math.abs(v)).replace('$', v<0?'-$':'$');
-  document.getElementById('s-value').textContent    = fmt.dollar(s.total_value);
-  document.getElementById('s-cost').textContent     = fmt.dollar(s.total_cost);
-  document.getElementById('s-pnl').className        = `sum-val ${pnlCls}`;
-  document.getElementById('s-pnl').textContent      = fmtSigned(s.total_pnl);
-  document.getElementById('s-pnl-pct').className    = `sum-val ${pnlCls}`;
-  document.getElementById('s-pnl-pct').textContent  = s.total_pnl_pct == null ? '—' : (s.total_pnl_pct >= 0 ? '+' : '') + s.total_pnl_pct.toFixed(2) + '%';
-  document.getElementById('s-day').className        = `sum-val ${dayCls}`;
-  document.getElementById('s-day').textContent      = fmtSigned(s.day_pnl);
+  const pc = s.total_pnl>=0?'pos':'neg', dc = s.day_pnl>=0?'pos':'neg';
+  document.getElementById('s-value').textContent   = fmt.dollar(s.total_value);
+  document.getElementById('s-cost').textContent    = fmt.dollar(s.total_cost);
+  document.getElementById('s-pnl').className       = `sum-val ${pc}`;
+  document.getElementById('s-pnl').textContent     = fmt.signed(s.total_pnl);
+  document.getElementById('s-pnl-pct').className   = `sum-val ${pc}`;
+  document.getElementById('s-pnl-pct').textContent = s.total_pnl_pct==null?'—':(s.total_pnl_pct>=0?'+':'')+s.total_pnl_pct.toFixed(2)+'%';
+  document.getElementById('s-day').className       = `sum-val ${dc}`;
+  document.getElementById('s-day').textContent     = fmt.signed(s.day_pnl);
 }
 
 function renderTable(holdings) {
@@ -277,20 +285,25 @@ function renderTable(holdings) {
   holdings.forEach(h => {
     const tr = document.createElement('tr');
     tr.dataset.id = h.id;
-    const pnlHtml = h.unreal_pnl == null ? '<span class="neu">—</span>'
-      : `<span class="${h.unreal_pnl>=0?'pos':'neg'}">${h.unreal_pnl>=0?'+':''}${fmt.dollar(Math.abs(h.unreal_pnl)).replace('$', h.unreal_pnl<0?'-$':'$')}</span>`;
+    const pnlHtml = h.unreal_pnl==null ? '<span class="neu">—</span>'
+      : `<span class="${h.unreal_pnl>=0?'pos':'neg'}">${fmt.signed(h.unreal_pnl)}</span>`;
+    const recHtml = h.claude_rec
+      ? recBadge(h.claude_rec, h.claude_rec_reason, h.claude_rec_date)
+      : (h.claude_rec_reason && h.claude_rec_reason.includes('KEY')
+          ? recErrBadge(h.claude_rec_reason) : '<span class="neu">—</span>');
     tr.innerHTML = `
       <td><span class="ticker-sym">${h.ticker}</span></td>
-      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis">${h.longName || '—'}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis">${h.longName||'—'}</td>
+      <td>${countryBadge(h.market_currency)}</td>
       <td class="num">${fmt.num(h.shares)}</td>
       <td class="num">${fmt.dollar(h.avg_cost)}</td>
-      <td class="num" data-order="${h.current_price ?? -1}">${fmt.dollar(h.current_price)}</td>
-      <td class="num" data-order="${h.market_value ?? -1}">${fmt.dollar(h.market_value)}</td>
-      <td class="num" data-order="${h.unreal_pnl ?? -9999}">${pnlHtml}</td>
-      <td class="num" data-order="${h.unreal_pnl_pct ?? -9999}">${fmt.pct(h.unreal_pnl_pct)}</td>
-      <td class="num" data-order="${h.day_chg_pct ?? -9999}">${fmt.pct(h.day_chg_pct)}</td>
-      <td data-order="${recOrder(h.claude_rec)}" class="rec-cell" data-ticker="${h.ticker}">${recBadge(h.claude_rec, h.claude_rec_reason, h.claude_rec_date)}</td>
-      <td class="notes-cell" title="${h.notes}">${h.notes || ''}</td>
+      <td class="num" data-order="${h.current_price??-1}">${fmt.dollar(h.current_price)}</td>
+      <td class="num" data-order="${h.market_value??-1}">${fmt.dollar(h.market_value)}</td>
+      <td class="num" data-order="${h.unreal_pnl??-9999}">${pnlHtml}</td>
+      <td class="num" data-order="${h.unreal_pnl_pct??-9999}">${fmt.pct(h.unreal_pnl_pct)}</td>
+      <td class="num" data-order="${h.day_chg_pct??-9999}">${fmt.pct(h.day_chg_pct)}</td>
+      <td data-order="${recOrder(h.claude_rec)}" class="rec-cell" data-ticker="${h.ticker}">${recHtml}</td>
+      <td><span class="notes-edit" contenteditable="true" data-id="${h.id}" data-placeholder="add note…">${h.notes||''}</span></td>
       <td>
         <button class="act-btn edit-btn" data-id="${h.id}">Edit</button>
         <button class="act-btn del del-btn" data-id="${h.id}">Del</button>
@@ -300,57 +313,202 @@ function renderTable(holdings) {
 
   dt = $('#port-tbl').DataTable({
     paging: false, dom: 'it',
-    order: [[5, 'desc']],
+    order: [[6, 'desc']],
     columnDefs: [
-      { targets: [2,3,4,5,6,7,8], type: 'num' },
-      { orderable: false, targets: [11] },
+      { targets: [3,4,5,6,7,8,9], type: 'num' },
+      { orderable: false, targets: [12] },
     ],
   });
 
   document.querySelectorAll('.edit-btn').forEach(b => b.addEventListener('click', () => openEdit(parseInt(b.dataset.id))));
-  document.querySelectorAll('.del-btn').forEach(b  => b.addEventListener('click',  () => deleteHolding(parseInt(b.dataset.id), b.closest('tr').querySelector('.ticker-sym').textContent)));
+  document.querySelectorAll('.del-btn').forEach(b  => b.addEventListener('click', () => deleteHolding(parseInt(b.dataset.id), b.closest('tr').querySelector('.ticker-sym').textContent)));
 }
+
+// ── Inline notes editing ──────────────────────────────────────────────────────
+document.getElementById('port-body').addEventListener('blur', function(e) {
+  if (!e.target.classList.contains('notes-edit')) return;
+  const id    = parseInt(e.target.dataset.id);
+  const notes = e.target.textContent.trim();
+  const h     = _holdings.find(x => x.id === id);
+  if (h && h.notes === notes) return;   // no change
+  if (h) h.notes = notes;
+  fetch(`/api/portfolio/${id}/notes`, {
+    method: 'PATCH', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({notes}),
+  }).catch(() => {});
+}, true);
+
+document.getElementById('port-body').addEventListener('keydown', function(e) {
+  if (e.target.classList.contains('notes-edit') && e.key === 'Enter') {
+    e.preventDefault(); e.target.blur();
+  }
+});
 
 // ── Claude Recs ───────────────────────────────────────────────────────────────
 function computeRecs(force) {
   const btn = document.getElementById('rec-btn');
-  btn.disabled = true;
-  btn.textContent = '⏳ Computing…';
-  // Show computing state in all rec cells
-  if (force) {
-    document.querySelectorAll('.rec-cell').forEach(td => {
-      td.innerHTML = '<span class="rec-computing">computing…</span>';
-    });
-  }
-  fetch('/api/portfolio/recs', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({force}),
-  }).then(r => r.json()).then(data => {
-    btn.disabled = false;
-    btn.textContent = '⚡ Claude Recs';
-    if (!data.ok) return;
-    // Update rec cells in place
-    document.querySelectorAll('.rec-cell').forEach(td => {
-      const ticker = td.dataset.ticker;
-      const r = data.recs[ticker];
-      if (r) {
+  btn.disabled = true; btn.textContent = '⏳ Computing…';
+  if (force) document.querySelectorAll('.rec-cell').forEach(td => { td.innerHTML = '<span style="color:#475569;font-size:0.72rem;font-style:italic">computing…</span>'; });
+  fetch('/api/portfolio/recs', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({force})})
+    .then(r=>r.json()).then(data => {
+      btn.disabled = false; btn.textContent = '⚡ Claude Recs';
+      if (!data.ok) return;
+      document.querySelectorAll('.rec-cell').forEach(td => {
+        const ticker = td.dataset.ticker;
+        const r = data.recs[ticker];
+        if (!r) return;
         td.dataset.order = recOrder(r.rec);
-        td.innerHTML = recBadge(r.rec, r.reason, r.date);
-        // sync _holdings cache
-        const h = _holdings.find(x => x.ticker === ticker);
-        if (h) { h.claude_rec = r.rec; h.claude_rec_reason = r.reason; h.claude_rec_date = r.date; }
-      }
-    });
-  }).catch(() => {
-    btn.disabled = false;
-    btn.textContent = '⚡ Claude Recs';
+        td.innerHTML = r.rec
+          ? recBadge(r.rec, r.reason, r.date)
+          : (r.reason && r.reason.includes('KEY') ? recErrBadge(r.reason) : '<span class="neu">—</span>');
+        const h = _holdings.find(x => x.ticker===ticker);
+        if (h) { h.claude_rec=r.rec; h.claude_rec_reason=r.reason; h.claude_rec_date=r.date; }
+      });
+    }).catch(() => { btn.disabled=false; btn.textContent='⚡ Claude Recs'; });
+}
+document.getElementById('rec-btn').addEventListener('click', () => computeRecs(true));
+
+// ── CSV Import ────────────────────────────────────────────────────────────────
+let _importRows = [];
+
+function parseDelimited(text) {
+  const first = text.split('\n')[0];
+  const delim = first.includes('\t') ? '\t' : ',';
+  const lines  = text.replace(/^﻿/,'').trim().split('\n').filter(l=>l.trim());
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(delim).map(h=>h.replace(/^"|"$/g,'').trim());
+  function parseLine(line) {
+    const vals=[]; let cur='', inQ=false;
+    for (let i=0;i<line.length;i++) {
+      const c=line[i];
+      if (c==='"') inQ=!inQ;
+      else if (c===delim && !inQ) { vals.push(cur.trim()); cur=''; }
+      else cur+=c;
+    }
+    vals.push(cur.trim());
+    const row={};
+    headers.forEach((h,i)=>{ row[h]=(vals[i]||'').replace(/^"|"$/g,'').trim(); });
+    return row;
+  }
+  return lines.slice(1).map(parseLine);
+}
+
+function findCol(row, ...cands) {
+  for (const c of cands) {
+    if (row[c]!==undefined) return c;
+    const k=Object.keys(row).find(k=>k.toLowerCase()===c.toLowerCase()); if (k) return k;
+  }
+  for (const c of cands) {
+    const k=Object.keys(row).find(k=>k.toLowerCase().includes(c.toLowerCase())); if (k) return k;
+  }
+  return null;
+}
+
+function mapImportRows(rawRows) {
+  if (!rawRows.length) return [];
+  const s = rawRows[0];
+  const cTicker = findCol(s,'Symbol','Ticker');
+  const cQty    = findCol(s,'Quantity','Qty','Shares');
+  const cBook   = findCol(s,'Book Value (Market)','Book Value(Market)','BookValueMarket','Book Value');
+  const cCur    = findCol(s,'Book Value Currency (Market)','Market Price Currency','Currency');
+  const cName   = findCol(s,'Name','Description');
+  const cSec    = findCol(s,'Security Type','SecurityType','Type');
+  const cDir    = findCol(s,'Position Direction','Direction','Side');
+
+  return rawRows.map(r => {
+    const ticker  = cTicker ? r[cTicker].toUpperCase() : '';
+    const shares  = cQty   ? parseFloat(r[cQty])       : NaN;
+    const bookVal = cBook  ? parseFloat(r[cBook])       : NaN;
+    const currency= cCur   ? r[cCur].trim()             : 'USD';
+    const name    = cName  ? r[cName]                   : '';
+    const secType = cSec   ? r[cSec].toUpperCase()      : '';
+    const dir     = cDir   ? r[cDir].toUpperCase()      : '';
+    const avg_cost= (!isNaN(shares)&&shares>0&&!isNaN(bookVal))
+      ? Math.round(Math.abs(bookVal/shares)*10000)/10000 : NaN;
+
+    let status = 'OK';
+    if (!ticker)                           status = 'Skip — no ticker';
+    else if (secType && secType!=='EQUITY') status = `Skip — ${secType}`;
+    else if (dir && dir!=='LONG')           status = `Skip — ${dir}`;
+    else if (isNaN(shares)||shares<=0)      status = 'Skip — invalid qty';
+    else if (isNaN(avg_cost)||avg_cost<=0)  status = 'Skip — no cost data';
+
+    return { ticker, name, shares, avg_cost, currency, status, _ok: status==='OK' };
   });
 }
 
-document.getElementById('rec-btn').addEventListener('click', () => computeRecs(true));
+function updateImportCount() {
+  const n = document.querySelectorAll('#import-body .imp-chk:checked').length;
+  document.getElementById('import-count-lbl').textContent = `${n} holding(s) will be imported`;
+}
 
-// ── Modal ─────────────────────────────────────────────────────────────────────
+function openImportModal(rows) {
+  _importRows = rows;
+  const good = rows.filter(r=>r._ok);
+  document.getElementById('import-sub').textContent = `Parsed ${rows.length} row(s) — ${good.length} valid EQUITY LONG position(s)`;
+  document.getElementById('import-err-lbl').textContent = '';
+  const tbody = document.getElementById('import-body');
+  tbody.innerHTML = '';
+  rows.forEach((r,i) => {
+    const tr = document.createElement('tr');
+    if (!r._ok) tr.classList.add('skip-row');
+    tr.innerHTML = `
+      <td><input type="checkbox" class="imp-chk" data-i="${i}" ${r._ok?'checked':''}></td>
+      <td style="font-weight:700;color:#818cf8;font-family:monospace">${r.ticker||'—'}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;color:#94a3b8">${r.name}</td>
+      <td style="text-align:right">${isNaN(r.shares)?'—':r.shares.toLocaleString()}</td>
+      <td style="text-align:right">${isNaN(r.avg_cost)?'—':r.avg_cost.toFixed(4)}</td>
+      <td style="color:#64748b">${r.currency}</td>
+      <td style="font-size:0.72rem;color:${r._ok?'#34d399':'#f87171'}">${r.status}</td>`;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('.imp-chk').forEach(cb=>cb.addEventListener('change', updateImportCount));
+  updateImportCount();
+  document.getElementById('import-overlay').classList.add('open');
+  document.getElementById('import-modal').classList.add('open');
+}
+
+function closeImportModal() {
+  document.getElementById('import-overlay').classList.remove('open');
+  document.getElementById('import-modal').classList.remove('open');
+}
+
+document.getElementById('import-btn').addEventListener('click', () => {
+  document.getElementById('csv-input').value = '';
+  document.getElementById('csv-input').click();
+});
+document.getElementById('csv-input').addEventListener('change', function() {
+  const file = this.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => openImportModal(mapImportRows(parseDelimited(e.target.result)));
+  reader.readAsText(file);
+});
+document.getElementById('import-cancel').addEventListener('click', closeImportModal);
+document.getElementById('import-overlay').addEventListener('click', closeImportModal);
+
+document.getElementById('import-confirm').addEventListener('click', () => {
+  const errEl = document.getElementById('import-err-lbl');
+  const btn   = document.getElementById('import-confirm');
+  const checked = [...document.querySelectorAll('#import-body .imp-chk:checked')].map(cb=>parseInt(cb.dataset.i));
+  const toImport = checked.map(i => {
+    const r = _importRows[i];
+    return { ticker: r.ticker, shares: r.shares, avg_cost: r.avg_cost,
+             market_currency: r.currency,
+             notes: `Imported ${TODAY} · ${r.currency}` };
+  });
+  if (!toImport.length) { errEl.textContent='Nothing selected.'; return; }
+  errEl.textContent=''; btn.disabled=true; btn.textContent='Importing…';
+  fetch('/api/portfolio/import', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({holdings:toImport, mode:document.getElementById('import-mode-sel').value}),
+  }).then(r=>r.json()).then(res => {
+    btn.disabled=false; btn.textContent='Import';
+    if (!res.ok) { errEl.textContent=res.error||'Import failed'; return; }
+    closeImportModal(); loadData();
+  }).catch(()=>{ btn.disabled=false; btn.textContent='Import'; errEl.textContent='Request failed'; });
+});
+
+// ── Add/Edit modal ────────────────────────────────────────────────────────────
 function openModal(title) {
   document.getElementById('modal-title').textContent = title;
   document.getElementById('modal-error').style.display = 'none';
@@ -362,233 +520,55 @@ function closeModal() {
   document.getElementById('modal').classList.remove('open');
   editId = null;
 }
-
 document.getElementById('add-btn').addEventListener('click', () => {
   editId = null;
-  ['f-ticker','f-shares','f-cost','f-notes'].forEach(id => document.getElementById(id).value = '');
+  ['f-ticker','f-shares','f-cost','f-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-currency').value = 'USD';
   document.getElementById('f-ticker').disabled = false;
   openModal('Add Holding');
 });
-
 function openEdit(id) {
-  const h = _holdings.find(x => x.id === id);
-  if (!h) return;
+  const h = _holdings.find(x=>x.id===id); if (!h) return;
   editId = id;
-  document.getElementById('f-ticker').value  = h.ticker;
-  document.getElementById('f-shares').value  = h.shares;
-  document.getElementById('f-cost').value    = h.avg_cost;
-  document.getElementById('f-notes').value   = h.notes;
+  document.getElementById('f-ticker').value   = h.ticker;
+  document.getElementById('f-shares').value   = h.shares;
+  document.getElementById('f-cost').value     = h.avg_cost;
+  document.getElementById('f-currency').value = h.market_currency || 'USD';
+  document.getElementById('f-notes').value    = h.notes;
   document.getElementById('f-ticker').disabled = true;
   openModal('Edit Holding');
 }
-
 document.getElementById('modal-cancel').addEventListener('click', closeModal);
 document.getElementById('modal-overlay').addEventListener('click', closeModal);
-
 document.getElementById('modal-save').addEventListener('click', () => {
   const ticker  = document.getElementById('f-ticker').value.trim().toUpperCase();
   const shares  = parseFloat(document.getElementById('f-shares').value);
   const avgCost = parseFloat(document.getElementById('f-cost').value);
+  const cur     = document.getElementById('f-currency').value;
   const notes   = document.getElementById('f-notes').value.trim();
   const errEl   = document.getElementById('modal-error');
-  if ((!ticker && !editId) || isNaN(shares) || isNaN(avgCost) || shares <= 0 || avgCost <= 0) {
-    errEl.textContent = 'Please fill in all required fields with valid numbers.';
-    errEl.style.display = 'block'; return;
+  if ((!ticker&&!editId)||isNaN(shares)||isNaN(avgCost)||shares<=0||avgCost<=0) {
+    errEl.textContent='Please fill in all required fields with valid numbers.';
+    errEl.style.display='block'; return;
   }
-  errEl.style.display = 'none';
-  const isEdit = editId != null;
-  const body = isEdit ? {shares, avg_cost: avgCost, notes} : {ticker, shares, avg_cost: avgCost, notes};
-  fetch(isEdit ? `/api/portfolio/${editId}` : '/api/portfolio', {
-    method: isEdit ? 'PUT' : 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify(body),
-  }).then(r => r.json()).then(res => {
-    if (!res.ok) { errEl.textContent = res.error || 'Save failed'; errEl.style.display = 'block'; return; }
+  errEl.style.display='none';
+  const isEdit = editId!=null;
+  const body = isEdit ? {shares,avg_cost:avgCost,notes,market_currency:cur}
+                      : {ticker,shares,avg_cost:avgCost,notes,market_currency:cur};
+  fetch(isEdit?`/api/portfolio/${editId}`:'/api/portfolio',{
+    method:isEdit?'PUT':'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
+  }).then(r=>r.json()).then(res=>{
+    if(!res.ok){errEl.textContent=res.error||'Save failed';errEl.style.display='block';return;}
     closeModal(); loadData();
   });
 });
 
 function deleteHolding(id, ticker) {
   if (!confirm(`Remove ${ticker} from portfolio?`)) return;
-  fetch(`/api/portfolio/${id}`, {method:'DELETE'}).then(r => r.json()).then(() => loadData());
+  fetch(`/api/portfolio/${id}`,{method:'DELETE'}).then(()=>loadData());
 }
 
 document.getElementById('refresh-btn').addEventListener('click', loadData);
-
-// ── CSV Import ────────────────────────────────────────────────────────────────
-let _importRows = [];
-
-function parseDelimited(text) {
-  const firstLine = text.split('\n')[0];
-  const delim = firstLine.includes('\t') ? '\t' : ',';
-  const lines = text.trim().split('\n').filter(l => l.trim());
-  if (lines.length < 2) return [];
-
-  // Parse headers — strip BOM, quotes, whitespace
-  const headers = lines[0].replace(/^﻿/, '').split(delim).map(h => h.replace(/^"|"$/g,'').trim());
-
-  function parseLine(line) {
-    const vals = [];
-    let cur = '', inQ = false;
-    for (let i = 0; i < line.length; i++) {
-      const c = line[i];
-      if (c === '"') { inQ = !inQ; }
-      else if (c === delim && !inQ) { vals.push(cur.trim()); cur = ''; }
-      else { cur += c; }
-    }
-    vals.push(cur.trim());
-    const row = {};
-    headers.forEach((h, i) => { row[h] = (vals[i] || '').replace(/^"|"$/g,'').trim(); });
-    return row;
-  }
-  return lines.slice(1).map(parseLine);
-}
-
-function findCol(row, ...candidates) {
-  for (const c of candidates) {
-    // Exact match first
-    if (row[c] !== undefined) return c;
-    // Case-insensitive partial match on header keys
-    const key = Object.keys(row).find(k => k.toLowerCase() === c.toLowerCase());
-    if (key) return key;
-  }
-  // Fallback: partial contains match
-  for (const c of candidates) {
-    const key = Object.keys(row).find(k => k.toLowerCase().includes(c.toLowerCase()));
-    if (key) return key;
-  }
-  return null;
-}
-
-function mapImportRows(rawRows) {
-  if (!rawRows.length) return [];
-  const sample = rawRows[0];
-
-  const colTicker   = findCol(sample, 'Symbol', 'Ticker', 'symbol');
-  const colQty      = findCol(sample, 'Quantity', 'Qty', 'Shares', 'quantity');
-  const colBookMkt  = findCol(sample, 'Book Value (Market)', 'Book Value(Market)', 'BookValueMarket', 'Book Value');
-  const colCurrency = findCol(sample, 'Book Value Currency (Market)', 'Market Price Currency', 'Currency', 'currency');
-  const colName     = findCol(sample, 'Name', 'Description', 'name');
-  const colSecType  = findCol(sample, 'Security Type', 'SecurityType', 'Type');
-  const colDir      = findCol(sample, 'Position Direction', 'Direction', 'Side');
-
-  return rawRows.map(r => {
-    const ticker   = colTicker   ? r[colTicker].toUpperCase()  : '';
-    const shares   = colQty      ? parseFloat(r[colQty])       : NaN;
-    const bookVal  = colBookMkt  ? parseFloat(r[colBookMkt])   : NaN;
-    const currency = colCurrency ? r[colCurrency].trim()        : '?';
-    const name     = colName     ? r[colName]                  : '';
-    const secType  = colSecType  ? r[colSecType].toUpperCase() : '';
-    const dir      = colDir      ? r[colDir].toUpperCase()     : '';
-
-    const avg_cost = (!isNaN(shares) && shares > 0 && !isNaN(bookVal))
-      ? Math.abs(Math.round(bookVal / shares * 10000) / 10000)
-      : NaN;
-
-    let status = 'OK';
-    if (!ticker)              status = 'Skip — no ticker';
-    else if (secType && secType !== 'EQUITY') status = `Skip — ${secType}`;
-    else if (dir && dir !== 'LONG')           status = `Skip — ${dir}`;
-    else if (isNaN(shares) || shares <= 0)    status = 'Skip — invalid qty';
-    else if (isNaN(avg_cost) || avg_cost <= 0) status = 'Skip — no cost data';
-
-    return { ticker, name, shares, avg_cost, currency, status, _ok: status === 'OK' };
-  });
-}
-
-function openImportModal(rows) {
-  _importRows = rows;
-  const good = rows.filter(r => r._ok);
-  document.getElementById('import-modal-sub').textContent =
-    `Parsed ${rows.length} row(s) — ${good.length} valid EQUITY LONG positions to import`;
-  document.getElementById('import-count').textContent = `${good.length} holding(s) will be imported`;
-  document.getElementById('import-error').textContent = '';
-
-  const tbody = document.getElementById('import-preview-body');
-  tbody.innerHTML = '';
-  rows.forEach((r, i) => {
-    const tr = document.createElement('tr');
-    if (!r._ok) tr.classList.add('skip-row');
-    tr.innerHTML = `
-      <td><input type="checkbox" class="imp-chk" data-i="${i}" ${r._ok ? 'checked' : ''}></td>
-      <td style="font-weight:700;color:#818cf8;font-family:monospace">${r.ticker || '—'}</td>
-      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;color:#94a3b8">${r.name}</td>
-      <td style="text-align:right">${isNaN(r.shares) ? '—' : r.shares.toLocaleString()}</td>
-      <td style="text-align:right">${isNaN(r.avg_cost) ? '—' : r.avg_cost.toFixed(4)}</td>
-      <td style="color:#64748b">${r.currency}</td>
-      <td style="font-size:0.72rem;color:${r._ok ? '#34d399' : '#f87171'}">${r.status}</td>`;
-    tbody.appendChild(tr);
-  });
-
-  // Update count when checkboxes change
-  tbody.querySelectorAll('.imp-chk').forEach(cb => cb.addEventListener('change', updateImportCount));
-
-  document.getElementById('import-modal-overlay').classList.add('open');
-  document.getElementById('import-modal').classList.add('open');
-}
-
-function updateImportCount() {
-  const checked = document.querySelectorAll('.imp-chk:checked').length;
-  document.getElementById('import-count').textContent = `${checked} holding(s) will be imported`;
-}
-
-function closeImportModal() {
-  document.getElementById('import-modal-overlay').classList.remove('open');
-  document.getElementById('import-modal').classList.remove('open');
-}
-
-document.getElementById('import-btn').addEventListener('click', () => {
-  document.getElementById('csv-input').value = '';
-  document.getElementById('csv-input').click();
-});
-
-document.getElementById('csv-input').addEventListener('change', function () {
-  const file = this.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const raw  = parseDelimited(e.target.result);
-    const rows = mapImportRows(raw);
-    openImportModal(rows);
-  };
-  reader.readAsText(file);
-});
-
-document.getElementById('import-cancel').addEventListener('click', closeImportModal);
-document.getElementById('import-modal-overlay').addEventListener('click', closeImportModal);
-
-document.getElementById('import-confirm').addEventListener('click', () => {
-  const errEl = document.getElementById('import-error');
-  const checkedIdxs = [...document.querySelectorAll('.imp-chk:checked')].map(cb => parseInt(cb.dataset.i));
-  const toImport = checkedIdxs.map(i => {
-    const r = _importRows[i];
-    return { ticker: r.ticker, shares: r.shares, avg_cost: r.avg_cost,
-             notes: `Imported ${new Date().toISOString().slice(0,10)} · ${r.currency}` };
-  });
-  if (!toImport.length) { errEl.textContent = 'Nothing selected.'; return; }
-  errEl.textContent = '';
-
-  const mode = document.getElementById('import-mode').value;
-  document.getElementById('import-confirm').disabled = true;
-  document.getElementById('import-confirm').textContent = 'Importing…';
-
-  fetch('/api/portfolio/import', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ holdings: toImport, mode }),
-  }).then(r => r.json()).then(res => {
-    document.getElementById('import-confirm').disabled = false;
-    document.getElementById('import-confirm').textContent = 'Import';
-    if (!res.ok) { errEl.textContent = res.error || 'Import failed'; return; }
-    closeImportModal();
-    loadData();
-  }).catch(() => {
-    document.getElementById('import-confirm').disabled = false;
-    document.getElementById('import-confirm').textContent = 'Import';
-    errEl.textContent = 'Request failed';
-  });
-});
-
 loadData();
 </script>
 </body>

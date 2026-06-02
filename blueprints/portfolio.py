@@ -1,4 +1,5 @@
 import math
+import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date as _date
 from flask import Blueprint, jsonify, render_template, request
@@ -31,17 +32,34 @@ def _prev_close_map(conn):
     return {r.ticker: float(r.prev_close) for r in rows}
 
 
+def _live_price_map(conn):
+    """Latest intraday close for today — most current price available."""
+    rows = conn.execute(_t("""
+        SELECT i.ticker, i.close AS live_price
+        FROM sp500_intraday i
+        INNER JOIN (
+            SELECT ticker, MAX(dt) AS max_dt
+            FROM sp500_intraday WHERE DATE(dt) = CURDATE()
+            GROUP BY ticker
+        ) today ON i.ticker = today.ticker AND i.dt = today.max_dt
+    """)).fetchall()
+    return {r.ticker: float(r.live_price) for r in rows}
+
+
 def _get_claude_rec(ticker: str) -> dict:
-    """Call Claude Sonnet acting as Charlie Munger to produce Buy / Hold / Sell."""
+    """Call Claude Sonnet acting as Charlie Munger: Munger 40% / fundamentals 40% / momentum 20%."""
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    if not api_key:
+        return {"rec": None, "reason": "ANTHROPIC_API_KEY not configured"}
+
     try:
         import anthropic
     except ImportError:
-        return {"rec": None, "reason": "anthropic package not installed"}
+        return {"rec": None, "reason": "anthropic package not installed — run: pip install anthropic"}
 
     from helpers import _price_changes
 
     def _fn(col, mult=1):
-        """Return numeric field formatted to 1 dp, or N/A."""
         if ticker not in state.df.index:
             return "N/A"
         try:
@@ -53,7 +71,6 @@ def _get_claude_rec(ticker: str) -> dict:
             return "N/A"
 
     def _fs(col):
-        """Return string field, or N/A."""
         if ticker not in state.df.index:
             return "N/A"
         try:
@@ -101,7 +118,7 @@ Line 1: One word only — Buy, Hold, or Sell
 Line 2: Rationale, max 12 words, written as Munger himself would say it"""
 
     try:
-        client = anthropic.Anthropic()
+        client = anthropic.Anthropic(api_key=api_key)
         msg = client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=80,
@@ -117,8 +134,9 @@ Line 2: Rationale, max 12 words, written as Munger himself would say it"""
         reason = lines[1] if len(lines) > 1 else ""
         return {"rec": rec, "reason": reason}
     except Exception as e:
-        print(f"[claude-rec] {ticker}: {e}")
-        return {"rec": None, "reason": ""}
+        err = str(e)[:120]
+        print(f"[claude-rec] {ticker}: {err}")
+        return {"rec": None, "reason": err}
 
 
 @bp.get("/portfolio")
@@ -134,10 +152,11 @@ def portfolio_list():
     with engine.connect() as conn:
         rows = conn.execute(_t("""
             SELECT id, ticker, shares, avg_cost, notes, added_at,
-                   claude_rec, claude_rec_date, claude_rec_reason
+                   claude_rec, claude_rec_date, claude_rec_reason, market_currency
             FROM portfolio_holdings ORDER BY added_at
         """)).fetchall()
         prev_map = _prev_close_map(conn)
+        live_map = _live_price_map(conn)
 
     holdings = []
     total_value   = 0.0
@@ -145,16 +164,22 @@ def portfolio_list():
     total_day_pnl = 0.0
 
     for r in rows:
-        ticker   = r.ticker
-        shares   = float(r.shares)
-        avg_cost = float(r.avg_cost)
-        cost_basis = round(shares * avg_cost, 2)
+        ticker          = r.ticker
+        shares          = float(r.shares)
+        avg_cost        = float(r.avg_cost)
+        cost_basis      = round(shares * avg_cost, 2)
+        market_currency = r.market_currency or "USD"
 
-        current_price = None
+        # Live price: today's intraday → state.df → yesterday's close
+        current_price = live_map.get(ticker)
+        if current_price is None and ticker in state.df.index:
+            current_price = _v(state.df.at[ticker, "currentPrice"])
+        if current_price is None:
+            current_price = prev_map.get(ticker)
+
         long_name = ticker
         if ticker in state.df.index:
-            current_price = _v(state.df.at[ticker, "currentPrice"])
-            long_name     = _v(state.df.at[ticker, "longName"], ticker)
+            long_name = _v(state.df.at[ticker, "longName"], ticker)
 
         market_value   = round(shares * current_price, 2) if current_price else None
         unreal_pnl     = round(market_value - cost_basis, 2) if market_value is not None else None
@@ -170,22 +195,23 @@ def portfolio_list():
             total_day_pnl += day_pnl
 
         holdings.append({
-            "id":              r.id,
-            "ticker":          ticker,
-            "longName":        long_name,
-            "shares":          shares,
-            "avg_cost":        avg_cost,
-            "current_price":   current_price,
-            "market_value":    market_value,
-            "unreal_pnl":      unreal_pnl,
-            "unreal_pnl_pct":  unreal_pnl_pct,
-            "day_chg_pct":     day_chg_pct,
-            "day_pnl":         day_pnl,
-            "claude_rec":      r.claude_rec,
-            "claude_rec_date": str(r.claude_rec_date) if r.claude_rec_date else None,
+            "id":               r.id,
+            "ticker":           ticker,
+            "longName":         long_name,
+            "market_currency":  market_currency,
+            "shares":           shares,
+            "avg_cost":         avg_cost,
+            "current_price":    current_price,
+            "market_value":     market_value,
+            "unreal_pnl":       unreal_pnl,
+            "unreal_pnl_pct":   unreal_pnl_pct,
+            "day_chg_pct":      day_chg_pct,
+            "day_pnl":          day_pnl,
+            "claude_rec":       r.claude_rec,
+            "claude_rec_date":  str(r.claude_rec_date) if r.claude_rec_date else None,
             "claude_rec_reason": r.claude_rec_reason or "",
-            "notes":           r.notes or "",
-            "added_at":        str(r.added_at)[:10],
+            "notes":            r.notes or "",
+            "added_at":         str(r.added_at)[:10],
         })
 
     total_pnl     = round(total_value - total_cost, 2)
@@ -207,13 +233,13 @@ def portfolio_list():
 @require_auth
 def portfolio_recs():
     force = (request.get_json(force=True, silent=True) or {}).get("force", False)
-    today = _date.today().isoformat()
+    today  = _date.today().isoformat()
     engine = get_engine()
 
     with engine.connect() as conn:
-        rows = conn.execute(_t("""
-            SELECT id, ticker, claude_rec_date FROM portfolio_holdings ORDER BY added_at
-        """)).fetchall()
+        rows = conn.execute(_t(
+            "SELECT id, ticker, claude_rec_date FROM portfolio_holdings ORDER BY added_at"
+        )).fetchall()
 
     to_compute = [r for r in rows if force or not r.claude_rec_date or str(r.claude_rec_date) != today]
     if not to_compute:
@@ -222,35 +248,48 @@ def portfolio_recs():
                 "SELECT ticker, claude_rec, claude_rec_date, claude_rec_reason FROM portfolio_holdings"
             )).fetchall()
         return jsonify({"ok": True, "recs": {
-            r.ticker: {"rec": r.claude_rec, "date": str(r.claude_rec_date) if r.claude_rec_date else None, "reason": r.claude_rec_reason}
+            r.ticker: {"rec": r.claude_rec,
+                       "date": str(r.claude_rec_date) if r.claude_rec_date else None,
+                       "reason": r.claude_rec_reason}
             for r in all_rows
         }})
 
-    # Run API calls in parallel (one per holding)
-    results = {}
     with ThreadPoolExecutor(max_workers=min(5, len(to_compute))) as pool:
         futures = {pool.submit(_get_claude_rec, r.ticker): r for r in to_compute}
         for future in as_completed(futures):
-            r = futures[future]
+            r    = futures[future]
             data = future.result()
-            results[r.ticker] = data
-            if data["rec"]:
-                with engine.connect() as conn:
-                    conn.execute(_t("""
-                        UPDATE portfolio_holdings
-                        SET claude_rec=:rec, claude_rec_date=:dt, claude_rec_reason=:reason
-                        WHERE id=:id
-                    """), {"rec": data["rec"], "dt": today, "reason": data["reason"], "id": r.id})
-                    conn.commit()
+            with engine.connect() as conn:
+                conn.execute(_t("""
+                    UPDATE portfolio_holdings
+                    SET claude_rec=:rec, claude_rec_date=:dt, claude_rec_reason=:reason
+                    WHERE id=:id
+                """), {"rec": data["rec"], "dt": today if data["rec"] else None,
+                       "reason": data["reason"], "id": r.id})
+                conn.commit()
 
     with engine.connect() as conn:
         all_rows = conn.execute(_t(
             "SELECT ticker, claude_rec, claude_rec_date, claude_rec_reason FROM portfolio_holdings"
         )).fetchall()
     return jsonify({"ok": True, "recs": {
-        r.ticker: {"rec": r.claude_rec, "date": str(r.claude_rec_date) if r.claude_rec_date else None, "reason": r.claude_rec_reason}
+        r.ticker: {"rec": r.claude_rec,
+                   "date": str(r.claude_rec_date) if r.claude_rec_date else None,
+                   "reason": r.claude_rec_reason}
         for r in all_rows
     }})
+
+
+@bp.patch("/api/portfolio/<int:holding_id>/notes")
+@require_auth
+def portfolio_update_notes(holding_id):
+    notes = (request.get_json(force=True).get("notes") or "").strip()
+    engine = get_engine()
+    with engine.connect() as conn:
+        conn.execute(_t("UPDATE portfolio_holdings SET notes=:nt WHERE id=:id"),
+                     {"nt": notes, "id": holding_id})
+        conn.commit()
+    return jsonify({"ok": True})
 
 
 @bp.post("/api/portfolio/import")
@@ -258,7 +297,7 @@ def portfolio_recs():
 def portfolio_import():
     body     = request.get_json(force=True)
     holdings = body.get("holdings", [])
-    mode     = body.get("mode", "merge")   # "replace" | "merge"
+    mode     = body.get("mode", "merge")
     if not holdings:
         return jsonify({"ok": False, "error": "No holdings provided"}), 400
 
@@ -270,10 +309,11 @@ def portfolio_import():
             conn.commit()
 
         for h in holdings:
-            ticker   = str(h.get("ticker", "")).strip().upper()
-            shares   = float(h.get("shares", 0))
-            avg_cost = float(h.get("avg_cost", 0))
-            notes    = str(h.get("notes", "")).strip()
+            ticker          = str(h.get("ticker", "")).strip().upper()
+            shares          = float(h.get("shares", 0))
+            avg_cost        = float(h.get("avg_cost", 0))
+            notes           = str(h.get("notes", "")).strip()
+            market_currency = str(h.get("market_currency", "USD"))[:3].upper()
             if not ticker or shares <= 0 or avg_cost <= 0:
                 continue
 
@@ -284,15 +324,16 @@ def portfolio_import():
             if existing and mode == "merge":
                 conn.execute(_t("""
                     UPDATE portfolio_holdings
-                    SET shares=:sh, avg_cost=:ac, notes=:nt WHERE ticker=:tk
-                """), {"sh": shares, "ac": avg_cost, "nt": notes, "tk": ticker})
+                    SET shares=:sh, avg_cost=:ac, notes=:nt, market_currency=:cur WHERE ticker=:tk
+                """), {"sh": shares, "ac": avg_cost, "nt": notes,
+                       "cur": market_currency, "tk": ticker})
             else:
                 conn.execute(_t("""
-                    INSERT INTO portfolio_holdings (ticker, shares, avg_cost, notes)
-                    VALUES (:tk, :sh, :ac, :nt)
-                """), {"tk": ticker, "sh": shares, "ac": avg_cost, "nt": notes})
+                    INSERT INTO portfolio_holdings (ticker, shares, avg_cost, notes, market_currency)
+                    VALUES (:tk, :sh, :ac, :nt, :cur)
+                """), {"tk": ticker, "sh": shares, "ac": avg_cost,
+                       "nt": notes, "cur": market_currency})
             imported += 1
-
         conn.commit()
     return jsonify({"ok": True, "count": imported})
 
@@ -300,19 +341,21 @@ def portfolio_import():
 @bp.post("/api/portfolio")
 @require_auth
 def portfolio_add():
-    body     = request.get_json(force=True)
-    ticker   = (body.get("ticker") or "").strip().upper()
-    shares   = body.get("shares")
-    avg_cost = body.get("avg_cost")
-    notes    = (body.get("notes") or "").strip()
+    body            = request.get_json(force=True)
+    ticker          = (body.get("ticker") or "").strip().upper()
+    shares          = body.get("shares")
+    avg_cost        = body.get("avg_cost")
+    notes           = (body.get("notes") or "").strip()
+    market_currency = (body.get("market_currency") or "USD").strip().upper()[:3]
     if not ticker or shares is None or avg_cost is None:
         return jsonify({"ok": False, "error": "ticker, shares and avg_cost are required"}), 400
     engine = get_engine()
     with engine.connect() as conn:
         res = conn.execute(_t("""
-            INSERT INTO portfolio_holdings (ticker, shares, avg_cost, notes)
-            VALUES (:tk, :sh, :ac, :nt)
-        """), {"tk": ticker, "sh": float(shares), "ac": float(avg_cost), "nt": notes})
+            INSERT INTO portfolio_holdings (ticker, shares, avg_cost, notes, market_currency)
+            VALUES (:tk, :sh, :ac, :nt, :cur)
+        """), {"tk": ticker, "sh": float(shares), "ac": float(avg_cost),
+               "nt": notes, "cur": market_currency})
         conn.commit()
     return jsonify({"ok": True, "id": res.lastrowid})
 
@@ -320,17 +363,20 @@ def portfolio_add():
 @bp.put("/api/portfolio/<int:holding_id>")
 @require_auth
 def portfolio_update(holding_id):
-    body     = request.get_json(force=True)
-    shares   = body.get("shares")
-    avg_cost = body.get("avg_cost")
-    notes    = (body.get("notes") or "").strip()
+    body            = request.get_json(force=True)
+    shares          = body.get("shares")
+    avg_cost        = body.get("avg_cost")
+    notes           = (body.get("notes") or "").strip()
+    market_currency = (body.get("market_currency") or "USD").strip().upper()[:3]
     if shares is None or avg_cost is None:
         return jsonify({"ok": False, "error": "shares and avg_cost required"}), 400
     engine = get_engine()
     with engine.connect() as conn:
         conn.execute(_t("""
-            UPDATE portfolio_holdings SET shares=:sh, avg_cost=:ac, notes=:nt WHERE id=:id
-        """), {"sh": float(shares), "ac": float(avg_cost), "nt": notes, "id": holding_id})
+            UPDATE portfolio_holdings
+            SET shares=:sh, avg_cost=:ac, notes=:nt, market_currency=:cur WHERE id=:id
+        """), {"sh": float(shares), "ac": float(avg_cost),
+               "nt": notes, "cur": market_currency, "id": holding_id})
         conn.commit()
     return jsonify({"ok": True})
 
