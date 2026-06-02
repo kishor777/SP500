@@ -246,6 +246,26 @@ def create_sentiment_table():
         conn.commit()
 
 
+def create_portfolio_table():
+    """Create portfolio_holdings table for personal portfolio tracking."""
+    engine = get_engine()
+    with engine.connect() as conn:
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS portfolio_holdings (
+                id        INT AUTO_INCREMENT PRIMARY KEY,
+                ticker    VARCHAR(20)    NOT NULL,
+                shares    DECIMAL(15,4)  NOT NULL,
+                avg_cost  DECIMAL(15,4)  NOT NULL,
+                notes     TEXT,
+                added_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                           ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_ticker (ticker)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """))
+        conn.commit()
+
+
 def create_sp500_history_table():
     """Create sp500_history table for daily OHLCV (matches yahoo_finance.py schema)."""
     engine = get_engine()

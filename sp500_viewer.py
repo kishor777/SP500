@@ -20,7 +20,8 @@ from workers import start_workers
 from db_config import (get_engine, create_guru_tables, create_guru_rules_table,
                        migrate_guru_tables, create_intraday_table,
                        create_screener_filters_table, create_vol_trades_table,
-                       create_sentiment_table, create_sp500_history_table)
+                       create_sentiment_table, create_sp500_history_table,
+                       create_portfolio_table)
 from config import GURUS, SCREENER_NUM_GROUPS
 
 from blueprints.admin           import bp as admin_bp
@@ -28,6 +29,7 @@ from blueprints.market_data     import bp as market_data_bp
 from blueprints.screener        import bp as screener_bp
 from blueprints.guru            import bp as guru_bp
 from blueprints.recommendations import bp as recommendations_bp
+from blueprints.portfolio       import bp as portfolio_bp
 
 # ── App factory ───────────────────────────────────────────────────────────────
 app = Flask(__name__)
@@ -41,6 +43,7 @@ app.register_blueprint(market_data_bp)
 app.register_blueprint(screener_bp)
 app.register_blueprint(guru_bp)
 app.register_blueprint(recommendations_bp)
+app.register_blueprint(portfolio_bp)
 
 # ── Startup: tables → data → state → workers ──────────────────────────────────
 try:
@@ -51,6 +54,7 @@ try:
     create_screener_filters_table()
     create_vol_trades_table()
     create_sentiment_table()
+    create_portfolio_table()
 except Exception as _e:
     print(f"Could not create/migrate tables: {_e}")
 
