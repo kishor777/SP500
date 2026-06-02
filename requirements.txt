@@ -1,4 +1,5 @@
 # Core
+anthropic>=0.40
 Flask>=3.0
 Flask-Limiter>=3.5
 gunicorn>=21.2

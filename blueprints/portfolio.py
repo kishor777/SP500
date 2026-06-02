@@ -1,4 +1,6 @@
 import math
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import date as _date
 from flask import Blueprint, jsonify, render_template, request
 from sqlalchemy import text as _t
 
@@ -10,7 +12,6 @@ bp = Blueprint("portfolio", __name__)
 
 
 def _v(val, default=None):
-    """Return default if val is None or NaN."""
     try:
         return default if (val is None or math.isnan(float(val))) else val
     except Exception:
@@ -30,6 +31,96 @@ def _prev_close_map(conn):
     return {r.ticker: float(r.prev_close) for r in rows}
 
 
+def _get_claude_rec(ticker: str) -> dict:
+    """Call Claude Sonnet acting as Charlie Munger to produce Buy / Hold / Sell."""
+    try:
+        import anthropic
+    except ImportError:
+        return {"rec": None, "reason": "anthropic package not installed"}
+
+    from helpers import _price_changes
+
+    def _fn(col, mult=1):
+        """Return numeric field formatted to 1 dp, or N/A."""
+        if ticker not in state.df.index:
+            return "N/A"
+        try:
+            v = state.df.at[ticker, col]
+            if v is None or (isinstance(v, float) and math.isnan(v)):
+                return "N/A"
+            return f"{float(v) * mult:.1f}"
+        except Exception:
+            return "N/A"
+
+    def _fs(col):
+        """Return string field, or N/A."""
+        if ticker not in state.df.index:
+            return "N/A"
+        try:
+            v = state.df.at[ticker, col]
+            if v is None or (isinstance(v, float) and math.isnan(v)):
+                return "N/A"
+            return str(v)
+        except Exception:
+            return "N/A"
+
+    long_name = _fs("longName") if _fs("longName") != "N/A" else ticker
+    sector    = _fs("sector")
+
+    fcf = "N/A"
+    if ticker in state.df.index:
+        try:
+            v = state.df.at[ticker, "freeCashflow"]
+            if v and not math.isnan(float(v)):
+                fcf = f"${float(v)/1e9:.1f}B"
+        except Exception:
+            pass
+
+    pc = _price_changes(ticker)
+    m3 = f"{pc['m3']:+.1f}%" if "m3" in pc else "N/A"
+    m6 = f"{pc['m6']:+.1f}%" if "m6" in pc else "N/A"
+    y1 = f"{pc['y1']:+.1f}%" if "y1" in pc else "N/A"
+
+    prompt = f"""You are evaluating {ticker} ({long_name}, {sector}) using a weighted framework to issue a portfolio recommendation.
+
+CHARLIE MUNGER PRINCIPLES — 40% weight:
+Assess: durable competitive moat (brand/network/switching costs), simple predictable business model, high returns on capital with minimal reinvestment, honest capable management, strong free cash flow generation, low debt and financial complexity, consistent long-term earnings predictability.
+
+FUNDAMENTALS — 40% weight:
+ROE: {_fn("returnOnEquity", 100)}%  |  Profit Margin: {_fn("profitMargins", 100)}%  |  Gross Margin: {_fn("grossMargins", 100)}%
+Operating Margin: {_fn("operatingMargins", 100)}%  |  Revenue Growth: {_fn("revenueGrowth", 100)}%  |  Earnings Growth: {_fn("earningsGrowth", 100)}%
+Trailing P/E: {_fn("trailingPE")}  |  Forward P/E: {_fn("forwardPE")}  |  Price/Book: {_fn("priceToBook")}
+EV/EBITDA: {_fn("enterpriseToEbitda")}  |  Debt/Equity: {_fn("debtToEquity")}  |  Free Cash Flow: {fcf}
+Analyst Consensus: {_fs("recommendationKey")}
+
+MOMENTUM — 20% weight:
+3-Month Return: {m3}  |  6-Month Return: {m6}  |  1-Year Return: {y1}
+
+Output EXACTLY two lines — no preamble, no explanation outside these two lines:
+Line 1: One word only — Buy, Hold, or Sell
+Line 2: Rationale, max 12 words, written as Munger himself would say it"""
+
+    try:
+        client = anthropic.Anthropic()
+        msg = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=80,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = msg.content[0].text.strip()
+        lines = [l.strip() for l in text.split("\n") if l.strip()]
+        rec = "Hold"
+        for word in ("Buy", "Hold", "Sell"):
+            if lines and word.lower() in lines[0].lower():
+                rec = word
+                break
+        reason = lines[1] if len(lines) > 1 else ""
+        return {"rec": rec, "reason": reason}
+    except Exception as e:
+        print(f"[claude-rec] {ticker}: {e}")
+        return {"rec": None, "reason": ""}
+
+
 @bp.get("/portfolio")
 @require_auth
 def portfolio_page():
@@ -42,17 +133,16 @@ def portfolio_list():
     engine = get_engine()
     with engine.connect() as conn:
         rows = conn.execute(_t("""
-            SELECT id, ticker, shares, avg_cost, notes, added_at
+            SELECT id, ticker, shares, avg_cost, notes, added_at,
+                   claude_rec, claude_rec_date, claude_rec_reason
             FROM portfolio_holdings ORDER BY added_at
         """)).fetchall()
         prev_map = _prev_close_map(conn)
 
     holdings = []
-    total_value = 0.0
-    total_cost  = 0.0
+    total_value   = 0.0
+    total_cost    = 0.0
     total_day_pnl = 0.0
-
-    sector_map = {}  # sector -> market_value
 
     for r in rows:
         ticker   = r.ticker
@@ -62,49 +152,44 @@ def portfolio_list():
 
         current_price = None
         long_name = ticker
-        sector = None
         if ticker in state.df.index:
             current_price = _v(state.df.at[ticker, "currentPrice"])
             long_name     = _v(state.df.at[ticker, "longName"], ticker)
-            sector        = _v(state.df.at[ticker, "sector"])
 
-        market_value    = round(shares * current_price, 2) if current_price else None
-        unreal_pnl      = round(market_value - cost_basis, 2) if market_value is not None else None
-        unreal_pnl_pct  = round((current_price - avg_cost) / avg_cost * 100, 2) if current_price else None
-        prev_close      = prev_map.get(ticker)
-        day_chg_pct     = round((current_price - prev_close) / prev_close * 100, 2) if (current_price and prev_close) else None
-        day_pnl         = round((current_price - prev_close) * shares, 2) if (current_price and prev_close) else None
+        market_value   = round(shares * current_price, 2) if current_price else None
+        unreal_pnl     = round(market_value - cost_basis, 2) if market_value is not None else None
+        unreal_pnl_pct = round((current_price - avg_cost) / avg_cost * 100, 2) if current_price else None
+        prev_close     = prev_map.get(ticker)
+        day_chg_pct    = round((current_price - prev_close) / prev_close * 100, 2) if (current_price and prev_close) else None
+        day_pnl        = round((current_price - prev_close) * shares, 2) if (current_price and prev_close) else None
 
-        total_cost  += cost_basis
+        total_cost += cost_basis
         if market_value is not None:
             total_value += market_value
-            if sector:
-                sector_map[sector] = sector_map.get(sector, 0) + market_value
         if day_pnl is not None:
             total_day_pnl += day_pnl
 
         holdings.append({
-            "id":            r.id,
-            "ticker":        ticker,
-            "longName":      long_name,
-            "sector":        sector,
-            "shares":        shares,
-            "avg_cost":      avg_cost,
-            "cost_basis":    cost_basis,
-            "current_price": current_price,
-            "market_value":  market_value,
-            "unreal_pnl":    unreal_pnl,
-            "unreal_pnl_pct": unreal_pnl_pct,
-            "day_chg_pct":   day_chg_pct,
-            "day_pnl":       day_pnl,
-            "notes":         r.notes or "",
-            "added_at":      str(r.added_at)[:10],
+            "id":              r.id,
+            "ticker":          ticker,
+            "longName":        long_name,
+            "shares":          shares,
+            "avg_cost":        avg_cost,
+            "current_price":   current_price,
+            "market_value":    market_value,
+            "unreal_pnl":      unreal_pnl,
+            "unreal_pnl_pct":  unreal_pnl_pct,
+            "day_chg_pct":     day_chg_pct,
+            "day_pnl":         day_pnl,
+            "claude_rec":      r.claude_rec,
+            "claude_rec_date": str(r.claude_rec_date) if r.claude_rec_date else None,
+            "claude_rec_reason": r.claude_rec_reason or "",
+            "notes":           r.notes or "",
+            "added_at":        str(r.added_at)[:10],
         })
 
     total_pnl     = round(total_value - total_cost, 2)
     total_pnl_pct = round(total_pnl / total_cost * 100, 2) if total_cost else None
-    sector_alloc  = [{"sector": s, "value": round(v, 2)} for s, v in
-                     sorted(sector_map.items(), key=lambda x: -x[1])]
 
     return jsonify({
         "holdings": holdings,
@@ -115,8 +200,57 @@ def portfolio_list():
             "total_pnl_pct": total_pnl_pct,
             "day_pnl":       round(total_day_pnl, 2),
         },
-        "sector_alloc": sector_alloc,
     })
+
+
+@bp.post("/api/portfolio/recs")
+@require_auth
+def portfolio_recs():
+    force = (request.get_json(force=True, silent=True) or {}).get("force", False)
+    today = _date.today().isoformat()
+    engine = get_engine()
+
+    with engine.connect() as conn:
+        rows = conn.execute(_t("""
+            SELECT id, ticker, claude_rec_date FROM portfolio_holdings ORDER BY added_at
+        """)).fetchall()
+
+    to_compute = [r for r in rows if force or not r.claude_rec_date or str(r.claude_rec_date) != today]
+    if not to_compute:
+        with engine.connect() as conn:
+            all_rows = conn.execute(_t(
+                "SELECT ticker, claude_rec, claude_rec_date, claude_rec_reason FROM portfolio_holdings"
+            )).fetchall()
+        return jsonify({"ok": True, "recs": {
+            r.ticker: {"rec": r.claude_rec, "date": str(r.claude_rec_date) if r.claude_rec_date else None, "reason": r.claude_rec_reason}
+            for r in all_rows
+        }})
+
+    # Run API calls in parallel (one per holding)
+    results = {}
+    with ThreadPoolExecutor(max_workers=min(5, len(to_compute))) as pool:
+        futures = {pool.submit(_get_claude_rec, r.ticker): r for r in to_compute}
+        for future in as_completed(futures):
+            r = futures[future]
+            data = future.result()
+            results[r.ticker] = data
+            if data["rec"]:
+                with engine.connect() as conn:
+                    conn.execute(_t("""
+                        UPDATE portfolio_holdings
+                        SET claude_rec=:rec, claude_rec_date=:dt, claude_rec_reason=:reason
+                        WHERE id=:id
+                    """), {"rec": data["rec"], "dt": today, "reason": data["reason"], "id": r.id})
+                    conn.commit()
+
+    with engine.connect() as conn:
+        all_rows = conn.execute(_t(
+            "SELECT ticker, claude_rec, claude_rec_date, claude_rec_reason FROM portfolio_holdings"
+        )).fetchall()
+    return jsonify({"ok": True, "recs": {
+        r.ticker: {"rec": r.claude_rec, "date": str(r.claude_rec_date) if r.claude_rec_date else None, "reason": r.claude_rec_reason}
+        for r in all_rows
+    }})
 
 
 @bp.post("/api/portfolio")
@@ -136,8 +270,7 @@ def portfolio_add():
             VALUES (:tk, :sh, :ac, :nt)
         """), {"tk": ticker, "sh": float(shares), "ac": float(avg_cost), "nt": notes})
         conn.commit()
-        row_id = res.lastrowid
-    return jsonify({"ok": True, "id": row_id})
+    return jsonify({"ok": True, "id": res.lastrowid})
 
 
 @bp.put("/api/portfolio/<int:holding_id>")

@@ -246,6 +246,24 @@ def create_sentiment_table():
         conn.commit()
 
 
+def migrate_portfolio_table():
+    """Add claude_rec columns to portfolio_holdings if not already present."""
+    engine = get_engine()
+    new_cols = [
+        ("claude_rec",        "VARCHAR(10)"),
+        ("claude_rec_date",   "DATE"),
+        ("claude_rec_reason", "VARCHAR(500)"),
+    ]
+    with engine.connect() as conn:
+        for col, defn in new_cols:
+            try:
+                conn.execute(text(f"ALTER TABLE portfolio_holdings ADD COLUMN {col} {defn}"))
+                conn.commit()
+                print(f"[portfolio] Added column {col}")
+            except Exception:
+                pass  # already exists
+
+
 def create_portfolio_table():
     """Create portfolio_holdings table for personal portfolio tracking."""
     engine = get_engine()

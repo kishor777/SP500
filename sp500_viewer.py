@@ -21,7 +21,7 @@ from db_config import (get_engine, create_guru_tables, create_guru_rules_table,
                        migrate_guru_tables, create_intraday_table,
                        create_screener_filters_table, create_vol_trades_table,
                        create_sentiment_table, create_sp500_history_table,
-                       create_portfolio_table)
+                       create_portfolio_table, migrate_portfolio_table)
 from config import GURUS, SCREENER_NUM_GROUPS
 
 from blueprints.admin           import bp as admin_bp
@@ -55,6 +55,7 @@ try:
     create_vol_trades_table()
     create_sentiment_table()
     create_portfolio_table()
+    migrate_portfolio_table()
 except Exception as _e:
     print(f"Could not create/migrate tables: {_e}")
 
