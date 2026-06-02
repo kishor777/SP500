@@ -253,6 +253,50 @@ def portfolio_recs():
     }})
 
 
+@bp.post("/api/portfolio/import")
+@require_auth
+def portfolio_import():
+    body     = request.get_json(force=True)
+    holdings = body.get("holdings", [])
+    mode     = body.get("mode", "merge")   # "replace" | "merge"
+    if not holdings:
+        return jsonify({"ok": False, "error": "No holdings provided"}), 400
+
+    engine = get_engine()
+    imported = 0
+    with engine.connect() as conn:
+        if mode == "replace":
+            conn.execute(_t("DELETE FROM portfolio_holdings"))
+            conn.commit()
+
+        for h in holdings:
+            ticker   = str(h.get("ticker", "")).strip().upper()
+            shares   = float(h.get("shares", 0))
+            avg_cost = float(h.get("avg_cost", 0))
+            notes    = str(h.get("notes", "")).strip()
+            if not ticker or shares <= 0 or avg_cost <= 0:
+                continue
+
+            existing = conn.execute(_t(
+                "SELECT id FROM portfolio_holdings WHERE ticker = :tk"
+            ), {"tk": ticker}).fetchone()
+
+            if existing and mode == "merge":
+                conn.execute(_t("""
+                    UPDATE portfolio_holdings
+                    SET shares=:sh, avg_cost=:ac, notes=:nt WHERE ticker=:tk
+                """), {"sh": shares, "ac": avg_cost, "nt": notes, "tk": ticker})
+            else:
+                conn.execute(_t("""
+                    INSERT INTO portfolio_holdings (ticker, shares, avg_cost, notes)
+                    VALUES (:tk, :sh, :ac, :nt)
+                """), {"tk": ticker, "sh": shares, "ac": avg_cost, "nt": notes})
+            imported += 1
+
+        conn.commit()
+    return jsonify({"ok": True, "count": imported})
+
+
 @bp.post("/api/portfolio")
 @require_auth
 def portfolio_add():

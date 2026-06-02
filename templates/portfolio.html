@@ -65,6 +65,27 @@
   .rec-computing { color: #475569; font-size: 0.72rem; font-style: italic; }
   .rec-meta { font-size: 0.65rem; color: #334155; display: block; margin-top: 2px; }
 
+  /* import preview modal */
+  #import-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:200; }
+  #import-modal-overlay.open { display:block; }
+  #import-modal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:min(96vw,820px); max-height:85vh; background:#1a1d27; border:1px solid #2d3148; border-radius:12px; z-index:201; padding:24px; box-shadow:0 20px 60px rgba(0,0,0,.7); overflow:hidden; flex-direction:column; }
+  #import-modal.open { display:flex; }
+  #import-modal-title { font-size:1rem; font-weight:700; color:#f8fafc; margin-bottom:4px; }
+  #import-modal-sub   { font-size:0.75rem; color:#475569; margin-bottom:14px; }
+  #import-preview-wrap { overflow-y:auto; flex:1; border:1px solid #2d3148; border-radius:8px; }
+  #import-preview { width:100%; border-collapse:collapse; font-size:0.8rem; }
+  #import-preview thead th { background:#1a1d27; color:#64748b; font-size:0.68rem; text-transform:uppercase; letter-spacing:.05em; padding:8px 12px; border-bottom:1px solid #2d3148; white-space:nowrap; }
+  #import-preview tbody tr { border-bottom:1px solid #1e2235; }
+  #import-preview tbody tr:hover { background:#1e2235; }
+  #import-preview tbody td { padding:7px 12px; white-space:nowrap; }
+  .skip-row { opacity:0.4; }
+  #import-footer { display:flex; align-items:center; gap:10px; margin-top:14px; flex-wrap:wrap; }
+  #import-mode  { background:#0f1117; border:1px solid #2d3148; color:#e2e8f0; padding:5px 10px; border-radius:6px; font-size:0.78rem; cursor:pointer; }
+  #import-count { font-size:0.75rem; color:#64748b; flex:1; }
+  .btn-import   { background:#059669; border:none; color:#fff; padding:7px 18px; border-radius:6px; font-size:0.82rem; cursor:pointer; font-weight:600; }
+  .btn-import:hover { background:#047857; }
+  #import-error { color:#f87171; font-size:0.78rem; }
+
   /* modal */
   #modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 100; }
   #modal-overlay.open { display: block; }
@@ -111,6 +132,8 @@
   <!-- Toolbar -->
   <div class="toolbar">
     <button id="add-btn">+ Add Holding</button>
+    <button id="import-btn">⬆ Import CSV</button>
+    <input id="csv-input" type="file" accept=".csv,.tsv,.txt" style="display:none">
     <button id="refresh-btn">⟳ Refresh</button>
     <button id="rec-btn">⚡ Claude Recs</button>
     <span id="last-updated"></span>
@@ -135,6 +158,32 @@
       </tr></thead>
       <tbody id="port-body"></tbody>
     </table>
+  </div>
+</div>
+
+<!-- Import preview modal -->
+<div id="import-modal-overlay"></div>
+<div id="import-modal">
+  <div id="import-modal-title">Import Holdings from CSV</div>
+  <div id="import-modal-sub"></div>
+  <div id="import-preview-wrap">
+    <table id="import-preview">
+      <thead><tr>
+        <th></th><th>Ticker</th><th>Name</th><th>Shares</th>
+        <th>Avg Cost</th><th>Currency</th><th>Status</th>
+      </tr></thead>
+      <tbody id="import-preview-body"></tbody>
+    </table>
+  </div>
+  <div id="import-footer">
+    <select id="import-mode">
+      <option value="merge">Merge — update existing, add new</option>
+      <option value="replace">Replace all — clear portfolio first</option>
+    </select>
+    <span id="import-count"></span>
+    <span id="import-error"></span>
+    <button class="btn-cancel" id="import-cancel">Cancel</button>
+    <button class="btn-import" id="import-confirm">Import</button>
   </div>
 </div>
 
@@ -365,6 +414,181 @@ function deleteHolding(id, ticker) {
 }
 
 document.getElementById('refresh-btn').addEventListener('click', loadData);
+
+// ── CSV Import ────────────────────────────────────────────────────────────────
+let _importRows = [];
+
+function parseDelimited(text) {
+  const firstLine = text.split('\n')[0];
+  const delim = firstLine.includes('\t') ? '\t' : ',';
+  const lines = text.trim().split('\n').filter(l => l.trim());
+  if (lines.length < 2) return [];
+
+  // Parse headers — strip BOM, quotes, whitespace
+  const headers = lines[0].replace(/^﻿/, '').split(delim).map(h => h.replace(/^"|"$/g,'').trim());
+
+  function parseLine(line) {
+    const vals = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { inQ = !inQ; }
+      else if (c === delim && !inQ) { vals.push(cur.trim()); cur = ''; }
+      else { cur += c; }
+    }
+    vals.push(cur.trim());
+    const row = {};
+    headers.forEach((h, i) => { row[h] = (vals[i] || '').replace(/^"|"$/g,'').trim(); });
+    return row;
+  }
+  return lines.slice(1).map(parseLine);
+}
+
+function findCol(row, ...candidates) {
+  for (const c of candidates) {
+    // Exact match first
+    if (row[c] !== undefined) return c;
+    // Case-insensitive partial match on header keys
+    const key = Object.keys(row).find(k => k.toLowerCase() === c.toLowerCase());
+    if (key) return key;
+  }
+  // Fallback: partial contains match
+  for (const c of candidates) {
+    const key = Object.keys(row).find(k => k.toLowerCase().includes(c.toLowerCase()));
+    if (key) return key;
+  }
+  return null;
+}
+
+function mapImportRows(rawRows) {
+  if (!rawRows.length) return [];
+  const sample = rawRows[0];
+
+  const colTicker   = findCol(sample, 'Symbol', 'Ticker', 'symbol');
+  const colQty      = findCol(sample, 'Quantity', 'Qty', 'Shares', 'quantity');
+  const colBookMkt  = findCol(sample, 'Book Value (Market)', 'Book Value(Market)', 'BookValueMarket', 'Book Value');
+  const colCurrency = findCol(sample, 'Book Value Currency (Market)', 'Market Price Currency', 'Currency', 'currency');
+  const colName     = findCol(sample, 'Name', 'Description', 'name');
+  const colSecType  = findCol(sample, 'Security Type', 'SecurityType', 'Type');
+  const colDir      = findCol(sample, 'Position Direction', 'Direction', 'Side');
+
+  return rawRows.map(r => {
+    const ticker   = colTicker   ? r[colTicker].toUpperCase()  : '';
+    const shares   = colQty      ? parseFloat(r[colQty])       : NaN;
+    const bookVal  = colBookMkt  ? parseFloat(r[colBookMkt])   : NaN;
+    const currency = colCurrency ? r[colCurrency].trim()        : '?';
+    const name     = colName     ? r[colName]                  : '';
+    const secType  = colSecType  ? r[colSecType].toUpperCase() : '';
+    const dir      = colDir      ? r[colDir].toUpperCase()     : '';
+
+    const avg_cost = (!isNaN(shares) && shares > 0 && !isNaN(bookVal))
+      ? Math.abs(Math.round(bookVal / shares * 10000) / 10000)
+      : NaN;
+
+    let status = 'OK';
+    if (!ticker)              status = 'Skip — no ticker';
+    else if (secType && secType !== 'EQUITY') status = `Skip — ${secType}`;
+    else if (dir && dir !== 'LONG')           status = `Skip — ${dir}`;
+    else if (isNaN(shares) || shares <= 0)    status = 'Skip — invalid qty';
+    else if (isNaN(avg_cost) || avg_cost <= 0) status = 'Skip — no cost data';
+
+    return { ticker, name, shares, avg_cost, currency, status, _ok: status === 'OK' };
+  });
+}
+
+function openImportModal(rows) {
+  _importRows = rows;
+  const good = rows.filter(r => r._ok);
+  document.getElementById('import-modal-sub').textContent =
+    `Parsed ${rows.length} row(s) — ${good.length} valid EQUITY LONG positions to import`;
+  document.getElementById('import-count').textContent = `${good.length} holding(s) will be imported`;
+  document.getElementById('import-error').textContent = '';
+
+  const tbody = document.getElementById('import-preview-body');
+  tbody.innerHTML = '';
+  rows.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    if (!r._ok) tr.classList.add('skip-row');
+    tr.innerHTML = `
+      <td><input type="checkbox" class="imp-chk" data-i="${i}" ${r._ok ? 'checked' : ''}></td>
+      <td style="font-weight:700;color:#818cf8;font-family:monospace">${r.ticker || '—'}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;color:#94a3b8">${r.name}</td>
+      <td style="text-align:right">${isNaN(r.shares) ? '—' : r.shares.toLocaleString()}</td>
+      <td style="text-align:right">${isNaN(r.avg_cost) ? '—' : r.avg_cost.toFixed(4)}</td>
+      <td style="color:#64748b">${r.currency}</td>
+      <td style="font-size:0.72rem;color:${r._ok ? '#34d399' : '#f87171'}">${r.status}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  // Update count when checkboxes change
+  tbody.querySelectorAll('.imp-chk').forEach(cb => cb.addEventListener('change', updateImportCount));
+
+  document.getElementById('import-modal-overlay').classList.add('open');
+  document.getElementById('import-modal').classList.add('open');
+}
+
+function updateImportCount() {
+  const checked = document.querySelectorAll('.imp-chk:checked').length;
+  document.getElementById('import-count').textContent = `${checked} holding(s) will be imported`;
+}
+
+function closeImportModal() {
+  document.getElementById('import-modal-overlay').classList.remove('open');
+  document.getElementById('import-modal').classList.remove('open');
+}
+
+document.getElementById('import-btn').addEventListener('click', () => {
+  document.getElementById('csv-input').value = '';
+  document.getElementById('csv-input').click();
+});
+
+document.getElementById('csv-input').addEventListener('change', function () {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const raw  = parseDelimited(e.target.result);
+    const rows = mapImportRows(raw);
+    openImportModal(rows);
+  };
+  reader.readAsText(file);
+});
+
+document.getElementById('import-cancel').addEventListener('click', closeImportModal);
+document.getElementById('import-modal-overlay').addEventListener('click', closeImportModal);
+
+document.getElementById('import-confirm').addEventListener('click', () => {
+  const errEl = document.getElementById('import-error');
+  const checkedIdxs = [...document.querySelectorAll('.imp-chk:checked')].map(cb => parseInt(cb.dataset.i));
+  const toImport = checkedIdxs.map(i => {
+    const r = _importRows[i];
+    return { ticker: r.ticker, shares: r.shares, avg_cost: r.avg_cost,
+             notes: `Imported ${new Date().toISOString().slice(0,10)} · ${r.currency}` };
+  });
+  if (!toImport.length) { errEl.textContent = 'Nothing selected.'; return; }
+  errEl.textContent = '';
+
+  const mode = document.getElementById('import-mode').value;
+  document.getElementById('import-confirm').disabled = true;
+  document.getElementById('import-confirm').textContent = 'Importing…';
+
+  fetch('/api/portfolio/import', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ holdings: toImport, mode }),
+  }).then(r => r.json()).then(res => {
+    document.getElementById('import-confirm').disabled = false;
+    document.getElementById('import-confirm').textContent = 'Import';
+    if (!res.ok) { errEl.textContent = res.error || 'Import failed'; return; }
+    closeImportModal();
+    loadData();
+  }).catch(() => {
+    document.getElementById('import-confirm').disabled = false;
+    document.getElementById('import-confirm').textContent = 'Import';
+    errEl.textContent = 'Request failed';
+  });
+});
+
 loadData();
 </script>
 </body>
