@@ -333,3 +333,5 @@ I dont need sector and cost basis. add a new column Claude Rec. The column is dy
 OK implement a import button to accept holdings-report-2026-06-02.csv and map it to Portfolio Table.
 
 OK Good import did work - Few problem though. Claude Rec dont work in dev environment or in railway. Price is not live for today. Notes column should be editable in table. Add Column if stock belongs to US or Canada after Company - It shall be based on if Market Price is in USD or CAD.
+
+Value in the Market column is wrong - It shall be based on corresponding value in Market Price Column in CSV files. Value Can be either US or CA.

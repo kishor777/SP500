@@ -139,6 +139,20 @@ Line 2: Rationale, max 12 words, written as Munger himself would say it"""
         return {"rec": None, "reason": err}
 
 
+@bp.get("/api/portfolio/recs/status")
+@require_auth
+def portfolio_recs_status():
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    has_key = bool(api_key)
+    try:
+        import anthropic
+        has_pkg = True
+    except ImportError:
+        has_pkg = False
+    return jsonify({"has_key": has_key, "has_pkg": has_pkg,
+                    "ready": has_key and has_pkg})
+
+
 @bp.get("/portfolio")
 @require_auth
 def portfolio_page():

@@ -86,6 +86,10 @@ try:
 except Exception as _e:
     print(f"Could not initialize guru rules DB: {_e}")
 
+# Diagnostic: confirm ANTHROPIC_API_KEY is loaded
+_ak = os.environ.get("ANTHROPIC_API_KEY", "")
+print(f"[startup] ANTHROPIC_API_KEY: {'SET (' + str(len(_ak)) + ' chars)' if _ak else 'NOT SET — Claude Recs will not work'}")
+
 # Start background threads
 start_workers()
 

@@ -24,6 +24,11 @@
   .sum-card .sum-val.neg { color: #f87171; }
   .sum-card .sum-val.purple { color: #818cf8; }
 
+  /* Claude status banner */
+  #claude-banner { display:none; background:#431407; border:1px solid #c2410c; border-radius:8px; padding:9px 16px; margin-bottom:10px; font-size:0.8rem; color:#fdba74; }
+  #claude-banner.visible { display:flex; align-items:center; gap:10px; }
+  #claude-banner a { color:#fb923c; text-decoration:underline; cursor:pointer; }
+
   .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
   #add-btn    { background: #3730a3; border: none; color: #fff; padding: 6px 16px; border-radius: 6px; font-size: 0.82rem; cursor: pointer; font-weight: 600; }
   #add-btn:hover { background: #4338ca; }
@@ -126,6 +131,7 @@
 </header>
 
 <div id="page-wrap">
+  <div id="claude-banner"></div>
   <div class="summary-bar">
     <div class="sum-card"><div class="sum-label">Total Value</div><div class="sum-val purple" id="s-value">—</div></div>
     <div class="sum-card"><div class="sum-label">Total Invested</div><div class="sum-val" id="s-cost">—</div></div>
@@ -569,6 +575,28 @@ function deleteHolding(id, ticker) {
 }
 
 document.getElementById('refresh-btn').addEventListener('click', loadData);
+
+// ── Claude status check ───────────────────────────────────────────────────────
+function checkClaudeStatus() {
+  fetch('/api/portfolio/recs/status').then(r=>r.json()).then(s => {
+    const banner = document.getElementById('claude-banner');
+    const btn    = document.getElementById('rec-btn');
+    if (s.ready) {
+      banner.classList.remove('visible');
+      btn.disabled = false;
+    } else {
+      const msg = !s.has_pkg
+        ? '⚠ <b>anthropic</b> package not installed — add <code>anthropic>=0.40</code> to requirements.txt and redeploy.'
+        : '⚠ <b>ANTHROPIC_API_KEY</b> not found in environment. Set it in Railway Variables (or your <code>.env</code> locally) and <b>redeploy</b>.';
+      banner.innerHTML = msg;
+      banner.classList.add('visible');
+      btn.disabled = true;
+      btn.title = 'ANTHROPIC_API_KEY not configured';
+    }
+  }).catch(() => {});
+}
+checkClaudeStatus();
+
 loadData();
 </script>
 </body>
