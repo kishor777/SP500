@@ -475,10 +475,14 @@ def _fetch_ticker_fundamentals(ticker: str, years: int = 2) -> tuple[list, list]
 
     analyst_rows = []
     try:
-        recs = t.recommendations
+        # yfinance 0.2.x: upgrade/downgrade history is under upgrades_downgrades
+        # (ticker.recommendations now returns the aggregated consensus summary, not history)
+        recs = t.upgrades_downgrades
         if recs is not None and not recs.empty:
             recs = recs.reset_index()
-            date_col = recs.columns[0]
+            # Column names vary: GradeDate / Date / index
+            date_col = next((c for c in recs.columns
+                             if c.lower() in ("gradedate", "date", "index")), recs.columns[0])
             for _, row in recs.iterrows():
                 try:
                     rec_date = pd.Timestamp(row[date_col]).date().isoformat()
@@ -488,8 +492,10 @@ def _fetch_ticker_fundamentals(ticker: str, years: int = 2) -> tuple[list, list]
                         "ticker":   ticker,
                         "rec_date": rec_date,
                         "firm":     str(row.get("Firm", row.get("firm", "")))[:200],
-                        "rec_to":   str(row.get("To Grade", row.get("toGrade", "")))[:100],
-                        "rec_from": str(row.get("From Grade", row.get("fromGrade", "")))[:100],
+                        "rec_to":   str(row.get("ToGrade", row.get("To Grade",
+                                        row.get("toGrade", ""))))[:100],
+                        "rec_from": str(row.get("FromGrade", row.get("From Grade",
+                                        row.get("fromGrade", ""))))[:100],
                         "action":   str(row.get("Action", row.get("action", "")))[:50],
                     })
                 except Exception:

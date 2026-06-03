@@ -593,6 +593,44 @@ def backtest_page():
     return render_template("backtest.html")
 
 
+@bp.post("/api/backtest/refetch-analyst")
+@require_auth
+def backtest_refetch_analyst():
+    """Re-fetch analyst upgrade/downgrade history for all tickers (background)."""
+    import threading
+    from workers import _fetch_ticker_fundamentals
+    import state
+
+    def _run():
+        from sqlalchemy import text as _t2
+        from db_config import get_engine as _ge
+        eng = _ge()
+        tickers = [str(t) for t in state.df.index]
+        state._fund_backfill_status.update({"state": "running", "done": 0,
+                                            "total": len(tickers), "msg": "analyst refetch"})
+        INSERT = _t2("""
+            INSERT INTO sp500_analyst_recs (ticker, rec_date, firm, rec_to, rec_from, action)
+            VALUES (:ticker, :rec_date, :firm, :rec_to, :rec_from, :action)
+        """)
+        for i, ticker in enumerate(tickers, 1):
+            try:
+                _, analyst_rows = _fetch_ticker_fundamentals(ticker, years=2)
+                if analyst_rows:
+                    with eng.connect() as conn:
+                        conn.execute(INSERT, analyst_rows)
+                        conn.commit()
+            except Exception as e:
+                print(f"[analyst-refetch] {ticker}: {e}")
+            state._fund_backfill_status.update({"done": i, "msg": f"analyst {i}/{len(tickers)}"})
+            import time; time.sleep(0.5)
+        state._fund_backfill_status.update({"state": "done", "msg": "analyst refetch complete"})
+        print("[analyst-refetch] Done")
+
+    t = threading.Thread(target=_run, daemon=True, name="analyst-refetch")
+    t.start()
+    return jsonify({"ok": True})
+
+
 @bp.post("/api/backtest/run")
 @require_auth
 def backtest_run():

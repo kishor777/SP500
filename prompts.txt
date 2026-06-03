@@ -339,3 +339,5 @@ Value in the Market column is wrong - It shall be based on corresponding value i
 I have Key Still Logs shows - Error as shows with details. ANTHROPIC_API_KEY not configured.
 
 OK Lets do another page called admin settings. The values that are currently in config.py are static - lets make it dynamic using this file. the page shall not be visible to every one, It should have settings grouped under each section.
+
+You have highlighted data problem for backtest. Quality, Valuation, Analyst signals are approximate. Can we fix it with historical fundamentals?

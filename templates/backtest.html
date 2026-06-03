@@ -108,6 +108,7 @@
     <span id="ds-fund" style="color:#64748b">Quarterly Fundamentals: loading…</span>
     <span id="ds-analyst" style="color:#64748b">Analyst History: loading…</span>
     <span id="ds-backfill" style="color:#64748b"></span>
+    <button id="fetch-analyst-btn" onclick="fetchAnalyst()" style="background:#1e2235;border:1px solid #2d3148;color:#94a3b8;padding:4px 12px;border-radius:5px;font-size:0.72rem;cursor:pointer;display:none">⬇ Fetch Analyst History</button>
   </div>
 
   <!-- Run panel -->
@@ -388,6 +389,10 @@ function loadDataStatus() {
     document.getElementById('ds-analyst').innerHTML =
       `Analyst History: <b style="color:${aCol}">${ac} tickers</b>`;
     const bf = document.getElementById('ds-backfill');
+    // Show analyst fetch button if analyst data is missing
+    const analystBtn = document.getElementById('fetch-analyst-btn');
+    analystBtn.style.display = (ac === 0 && s.backfill_state !== 'running') ? '' : 'none';
+
     if (s.backfill_state === 'running') {
       bf.style.color = '#fbbf24';
       bf.textContent = `⏳ Backfill running… ${s.backfill_pct}% (${s.backfill_msg})`;
@@ -400,8 +405,14 @@ function loadDataStatus() {
     }
   });
 }
-loadDataStatus();
+function fetchAnalyst() {
+  const btn = document.getElementById('fetch-analyst-btn');
+  btn.disabled = true; btn.textContent = '⏳ Running…';
+  fetch('/api/backtest/refetch-analyst', {method:'POST'})
+    .then(() => { setTimeout(loadDataStatus, 3000); });
+}
 
+loadDataStatus();
 pollStatus();
 </script>
 </body>
