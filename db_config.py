@@ -246,6 +246,50 @@ def create_sentiment_table():
         conn.commit()
 
 
+def create_backtest_tables():
+    """Create tables for backtesting the recommendation engine."""
+    engine = get_engine()
+    with engine.connect() as conn:
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS backtest_runs (
+                id         INT AUTO_INCREMENT PRIMARY KEY,
+                status     VARCHAR(10) NOT NULL DEFAULT 'running',
+                snap_total INT NOT NULL DEFAULT 0,
+                snap_done  INT NOT NULL DEFAULT 0,
+                error_msg  TEXT,
+                params     TEXT,
+                started_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                done_at    DATETIME
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS backtest_scores (
+                id        INT AUTO_INCREMENT PRIMARY KEY,
+                run_id    INT NOT NULL,
+                snap_date DATE NOT NULL,
+                ticker    VARCHAR(20) NOT NULL,
+                score     FLOAT, label VARCHAR(20),
+                m_score   FLOAT, f_score FLOAT, v_score FLOAT,
+                g_score   FLOAT, a_score FLOAT, s_score FLOAT,
+                ret_30    FLOAT, ret_90  FLOAT, ret_365 FLOAT,
+                INDEX idx_run (run_id),
+                INDEX idx_run_label (run_id, label)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS backtest_weights (
+                id           INT AUTO_INCREMENT PRIMARY KEY,
+                run_id       INT NOT NULL,
+                w_momentum   FLOAT, w_fundamental FLOAT, w_valuation FLOAT,
+                w_guru       FLOAT, w_analyst     FLOAT, w_sentiment FLOAT,
+                ic_30        FLOAT, ic_90         FLOAT,
+                sharpe_90    FLOAT,
+                INDEX idx_run (run_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """))
+        conn.commit()
+
+
 def create_admin_settings_table():
     """Create admin_settings key-value store for dynamic config overrides."""
     engine = get_engine()

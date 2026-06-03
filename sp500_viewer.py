@@ -22,7 +22,7 @@ from db_config import (get_engine, create_guru_tables, create_guru_rules_table,
                        create_screener_filters_table, create_vol_trades_table,
                        create_sentiment_table, create_sp500_history_table,
                        create_portfolio_table, migrate_portfolio_table,
-                       create_admin_settings_table)
+                       create_admin_settings_table, create_backtest_tables)
 from helpers import load_admin_settings
 from config import GURUS, SCREENER_NUM_GROUPS
 
@@ -33,6 +33,7 @@ from blueprints.guru            import bp as guru_bp
 from blueprints.recommendations import bp as recommendations_bp
 from blueprints.portfolio       import bp as portfolio_bp
 from blueprints.admin_settings  import bp as admin_settings_bp
+from blueprints.backtest        import bp as backtest_bp
 
 # ── App factory ───────────────────────────────────────────────────────────────
 app = Flask(__name__)
@@ -48,6 +49,7 @@ app.register_blueprint(guru_bp)
 app.register_blueprint(recommendations_bp)
 app.register_blueprint(portfolio_bp)
 app.register_blueprint(admin_settings_bp)
+app.register_blueprint(backtest_bp)
 
 # ── Startup: tables → data → state → workers ──────────────────────────────────
 try:
@@ -61,6 +63,7 @@ try:
     create_portfolio_table()
     migrate_portfolio_table()
     create_admin_settings_table()
+    create_backtest_tables()
 except Exception as _e:
     print(f"Could not create/migrate tables: {_e}")
 

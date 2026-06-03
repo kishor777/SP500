@@ -337,3 +337,5 @@ OK Good import did work - Few problem though. Claude Rec dont work in dev enviro
 Value in the Market column is wrong - It shall be based on corresponding value in Market Price Column in CSV files. Value Can be either US or CA.
 
 I have Key Still Logs shows - Error as shows with details. ANTHROPIC_API_KEY not configured.
+
+OK Lets do another page called admin settings. The values that are currently in config.py are static - lets make it dynamic using this file. the page shall not be visible to every one, It should have settings grouped under each section.

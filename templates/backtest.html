@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Backtest — Recommendation Engine</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+  header { background: #1a1d27; border-bottom: 1px solid #2d3148; padding: 12px 24px; display: flex; align-items: center; gap: 12px; }
+  .nav-links { display: flex; gap: 4px; margin-left: 8px; }
+  .nav-link { font-size: 0.82rem; padding: 5px 14px; border-radius: 6px; text-decoration: none; color: #94a3b8; transition: background .15s; }
+  .nav-link:hover { background: #2d3148; color: #e2e8f0; }
+  header h1 { font-size: 1.25rem; font-weight: 700; color: #f8fafc; }
+  #page-wrap { max-width: 1100px; margin: 0 auto; padding: 24px 20px; }
+
+  /* Run panel */
+  #run-panel { background: #1a1d27; border: 1px solid #2d3148; border-radius: 10px; padding: 18px 22px; margin-bottom: 20px; display: flex; align-items: flex-start; gap: 20px; flex-wrap: wrap; }
+  #run-info { flex: 1; }
+  .run-title { font-size: 0.95rem; font-weight: 700; color: #f8fafc; margin-bottom: 4px; }
+  .run-desc  { font-size: 0.78rem; color: #475569; line-height: 1.5; }
+  .caveat    { font-size: 0.72rem; color: #334155; margin-top: 6px; font-style: italic; }
+  #run-btn { background: #059669; border: none; color: #fff; padding: 9px 22px; border-radius: 7px; font-size: 0.84rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  #run-btn:hover:not(:disabled) { background: #047857; }
+  #run-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+  /* Progress */
+  #progress-wrap { display: none; margin-top: 14px; width: 100%; }
+  #progress-wrap.visible { display: block; }
+  .progress-track { background: #0f1117; border-radius: 4px; height: 8px; overflow: hidden; margin-bottom: 6px; }
+  .progress-fill  { height: 100%; background: #6366f1; border-radius: 4px; transition: width .4s; }
+  #progress-label { font-size: 0.72rem; color: #64748b; }
+
+  /* Section cards */
+  .section-card { background: #1a1d27; border: 1px solid #2d3148; border-radius: 10px; margin-bottom: 16px; overflow: hidden; }
+  .card-header  { background: #131620; padding: 10px 18px; border-bottom: 1px solid #2d3148; display: flex; align-items: center; justify-content: space-between; }
+  .card-title   { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #818cf8; }
+  .card-sub     { font-size: 0.68rem; color: #475569; }
+  .card-body    { padding: 18px; }
+
+  /* Signal IC table */
+  .ic-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  @media (max-width: 600px) { .ic-grid { grid-template-columns: 1fr 1fr; } }
+  .ic-cell { background: #0f1117; border: 1px solid #1e2235; border-radius: 7px; padding: 10px 14px; }
+  .ic-label { font-size: 0.68rem; color: #64748b; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+  .ic-val   { font-size: 1.1rem; font-weight: 700; }
+  .ic-bar-wrap { height: 4px; background: #2d3148; border-radius: 2px; margin-top: 5px; }
+  .ic-bar      { height: 4px; border-radius: 2px; }
+  .ic-good  { color: #34d399; } .ic-ok { color: #fbbf24; } .ic-weak { color: #f87171; } .ic-neu { color: #64748b; }
+
+  /* Label performance table */
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  thead th { background: #131620; color: #64748b; font-size: 0.7rem; text-transform: uppercase; letter-spacing: .05em; padding: 9px 14px; border-bottom: 1px solid #2d3148; text-align: left; }
+  thead th.num { text-align: right; }
+  tbody tr { border-bottom: 1px solid #1e2235; }
+  tbody tr:hover { background: #1e2235; }
+  tbody td { padding: 9px 14px; }
+  tbody td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .label-strong-buy { background:#064e3b; color:#34d399; padding:3px 8px; border-radius:4px; font-size:0.72rem; font-weight:700; }
+  .label-buy        { background:#052e16; color:#6ee7b7; padding:3px 8px; border-radius:4px; font-size:0.72rem; font-weight:700; }
+  .label-hold       { background:#422006; color:#fbbf24; padding:3px 8px; border-radius:4px; font-size:0.72rem; font-weight:700; }
+  .label-under      { background:#431407; color:#fb923c; padding:3px 8px; border-radius:4px; font-size:0.72rem; font-weight:700; }
+  .label-sell       { background:#450a0a; color:#f87171; padding:3px 8px; border-radius:4px; font-size:0.72rem; font-weight:700; }
+  .pos { color: #34d399; } .neg { color: #f87171; } .neu { color: #64748b; }
+
+  /* Decile bars */
+  .decile-chart { display: flex; flex-direction: column; gap: 5px; }
+  .decile-row   { display: flex; align-items: center; gap: 10px; }
+  .decile-label { font-size: 0.72rem; color: #94a3b8; width: 80px; flex-shrink: 0; }
+  .decile-bar-wrap { flex: 1; height: 18px; background: #0f1117; border-radius: 3px; overflow: hidden; position: relative; }
+  .decile-bar-pos  { height: 100%; border-radius: 3px; background: #34d399; transition: width .5s; position: absolute; left: 50%; }
+  .decile-bar-neg  { height: 100%; border-radius: 3px; background: #f87171; transition: width .5s; position: absolute; right: 50%; }
+  .decile-zero     { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #2d3148; }
+  .decile-val  { font-size: 0.72rem; width: 55px; text-align: right; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .decile-cnt  { font-size: 0.65rem; color: #334155; width: 50px; flex-shrink: 0; }
+
+  /* Weight table */
+  .weight-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+  .weight-table thead th { background: #131620; color: #64748b; font-size: 0.68rem; text-transform: uppercase; padding: 8px 10px; border-bottom: 1px solid #2d3148; white-space: nowrap; }
+  .weight-table tbody tr { border-bottom: 1px solid #1e2235; }
+  .weight-table tbody tr:first-child { background: #1e1b4b; }
+  .weight-table tbody tr:hover { background: #1e2235; }
+  .weight-table td { padding: 8px 10px; text-align: right; font-variant-numeric: tabular-nums; }
+  .weight-table td:first-child { text-align: center; font-weight: 700; color: #fbbf24; }
+  .apply-btn { background: #3730a3; border: none; color: #fff; padding: 3px 10px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; }
+  .apply-btn:hover { background: #4338ca; }
+
+  #apply-status { font-size: 0.78rem; margin-top: 10px; height: 18px; }
+  #results-wrap { display: none; }
+  #results-wrap.visible { display: block; }
+  #no-run-msg { color: #475569; font-size: 0.88rem; text-align: center; padding: 40px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>S&amp;P 500</h1>
+  <nav class="nav-links">
+    <a href="/" class="nav-link">Table</a>
+    <a href="/screener" class="nav-link">Screener</a>
+    <a href="/gurus" class="nav-link">Guru Investing</a>
+    <a href="/recommendations" class="nav-link">Recommendations</a>
+  </nav>
+</header>
+
+<div id="page-wrap">
+  <!-- Run panel -->
+  <div id="run-panel">
+    <div id="run-info">
+      <div class="run-title">Recommendation Engine Backtest</div>
+      <div class="run-desc">
+        Replays scoring against 24 monthly snapshots (Jan 2024 – Dec 2025) × ~500 S&amp;P 500 stocks.
+        Measures IC per signal, label performance vs actual returns, and grid-searches
+        15,000+ weight combinations to find the empirically optimal weights.
+      </div>
+      <div class="caveat">
+        ⚠ Quality, Valuation, and Analyst signals use today's fundamentals as a proxy for historical values.
+        Momentum and Guru signals are fully point-in-time accurate.
+      </div>
+      <div id="progress-wrap">
+        <div class="progress-track" style="margin-top:12px">
+          <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+        </div>
+        <div id="progress-label">Starting…</div>
+      </div>
+    </div>
+    <button id="run-btn">▶ Run Backtest</button>
+  </div>
+
+  <div id="no-run-msg">No backtest results yet. Click "Run Backtest" to start.</div>
+
+  <div id="results-wrap">
+    <!-- Signal IC -->
+    <div class="section-card">
+      <div class="card-header">
+        <span class="card-title">Signal Predictability — Information Coefficient (90-day)</span>
+        <span class="card-sub">IC &gt; 0.05 = useful · &gt; 0.10 = strong · negative = hurts returns</span>
+      </div>
+      <div class="card-body">
+        <div class="ic-grid" id="ic-grid"></div>
+      </div>
+    </div>
+
+    <!-- Label performance -->
+    <div class="section-card">
+      <div class="card-header">
+        <span class="card-title">Label Performance — Average Forward Returns</span>
+        <span class="card-sub">Based on current signal weights</span>
+      </div>
+      <div class="card-body">
+        <table>
+          <thead><tr>
+            <th>Label</th>
+            <th class="num">Count</th>
+            <th class="num">Avg 30d Return</th>
+            <th class="num">Avg 90d Return</th>
+            <th class="num">Avg 365d Return</th>
+            <th class="num">Win Rate 30d</th>
+            <th class="num">Win Rate 90d</th>
+          </tr></thead>
+          <tbody id="label-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Score decile chart -->
+    <div class="section-card">
+      <div class="card-header">
+        <span class="card-title">Score Decile Performance — Avg 90-day Return</span>
+        <span class="card-sub">Top score decile should outperform bottom decile if signal works</span>
+      </div>
+      <div class="card-body">
+        <div class="decile-chart" id="decile-chart"></div>
+      </div>
+    </div>
+
+    <!-- Top weight combinations -->
+    <div class="section-card">
+      <div class="card-header">
+        <span class="card-title">Optimal Signal Weights — Top 15 by 90-day IC</span>
+        <span class="card-sub">Grid search across 15,000+ normalised weight combinations</span>
+      </div>
+      <div class="card-body">
+        <table class="weight-table">
+          <thead><tr>
+            <th>#</th>
+            <th>Momentum</th><th>Quality</th><th>Valuation</th>
+            <th>Guru</th><th>Analyst</th><th>Sentiment</th>
+            <th>IC 30d</th><th>IC 90d</th><th>Sharpe 90d</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="weights-tbody"></tbody>
+        </table>
+        <div id="apply-status"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let _runId = null;
+let _pollTimer = null;
+let _results = null;
+
+function pct(v, decimals=1) {
+  if (v == null) return '<span class="neu">—</span>';
+  const c = v > 0 ? 'pos' : v < 0 ? 'neg' : 'neu';
+  return `<span class="${c}">${v >= 0 ? '+' : ''}${(v * 100).toFixed(decimals)}%</span>`;
+}
+
+function icColor(v) {
+  if (v == null) return 'ic-neu';
+  if (v >= 0.10) return 'ic-good';
+  if (v >= 0.04) return 'ic-ok';
+  if (v >= 0) return 'ic-neu';
+  return 'ic-weak';
+}
+
+function labelBadge(l) {
+  const key = l.toLowerCase().replace(' ', '-').replace('underperform','under');
+  return `<span class="label-${key}">${l}</span>`;
+}
+
+// ── Render results ─────────────────────────────────────────────────────────────
+function renderResults(data) {
+  _results = data;
+  document.getElementById('no-run-msg').style.display = 'none';
+  document.getElementById('results-wrap').classList.add('visible');
+
+  // Signal IC
+  const icGrid = document.getElementById('ic-grid');
+  icGrid.innerHTML = '';
+  Object.entries(data.signal_ic).forEach(([sig, ic]) => {
+    const cls = icColor(ic);
+    const barW = ic == null ? 0 : Math.min(100, Math.abs(ic) * 500);
+    const barCol = ic > 0 ? '#34d399' : '#f87171';
+    icGrid.innerHTML += `
+      <div class="ic-cell">
+        <div class="ic-label">${sig}</div>
+        <div class="ic-val ${cls}">${ic == null ? '—' : ic.toFixed(4)}</div>
+        <div class="ic-bar-wrap"><div class="ic-bar" style="width:${barW}%;background:${barCol}"></div></div>
+      </div>`;
+  });
+
+  // Label performance
+  const lt = document.getElementById('label-tbody');
+  lt.innerHTML = '';
+  data.labels.forEach(r => {
+    lt.innerHTML += `<tr>
+      <td>${labelBadge(r.label)}</td>
+      <td class="num">${(r.cnt||0).toLocaleString()}</td>
+      <td class="num">${pct(r.avg_30)}</td>
+      <td class="num">${pct(r.avg_90)}</td>
+      <td class="num">${pct(r.avg_365)}</td>
+      <td class="num">${r.win_30 == null ? '—' : (r.win_30*100).toFixed(0)+'%'}</td>
+      <td class="num">${r.win_90 == null ? '—' : (r.win_90*100).toFixed(0)+'%'}</td>
+    </tr>`;
+  });
+
+  // Decile chart
+  const dc = document.getElementById('decile-chart');
+  dc.innerHTML = '';
+  const maxAbs = Math.max(...data.deciles.map(d => Math.abs(d.avg_90 || 0)), 0.001);
+  data.deciles.forEach(d => {
+    const v = d.avg_90 || 0;
+    const barPct = Math.abs(v) / maxAbs * 45;  // max 45% of half-width
+    const label = d.bucket >= 90 ? `${d.bucket}–100` : `${d.bucket}–${d.bucket+10}`;
+    const pos = v >= 0, col = v >= 0 ? '#34d399' : '#f87171';
+    dc.innerHTML += `
+      <div class="decile-row">
+        <span class="decile-label">Score ${label}</span>
+        <div class="decile-bar-wrap">
+          <div class="decile-zero"></div>
+          ${pos
+            ? `<div class="decile-bar-pos" style="width:${barPct}%;background:${col}"></div>`
+            : `<div class="decile-bar-neg" style="width:${barPct}%;background:${col}"></div>`}
+        </div>
+        <span class="decile-val" style="color:${col}">${v >= 0 ? '+' : ''}${(v*100).toFixed(1)}%</span>
+        <span class="decile-cnt">${d.cnt} obs</span>
+      </div>`;
+  });
+
+  // Top weights table
+  const wt = document.getElementById('weights-tbody');
+  wt.innerHTML = '';
+  data.top_weights.forEach((w, i) => {
+    const fmtW = v => (v * 100).toFixed(0) + '%';
+    wt.innerHTML += `<tr>
+      <td>${i === 0 ? '🏆 #1' : '#' + (i+1)}</td>
+      <td>${fmtW(w.w_momentum)}</td>
+      <td>${fmtW(w.w_fundamental)}</td>
+      <td>${fmtW(w.w_valuation)}</td>
+      <td>${fmtW(w.w_guru)}</td>
+      <td>${fmtW(w.w_analyst)}</td>
+      <td>${fmtW(w.w_sentiment)}</td>
+      <td>${w.ic_30  != null ? w.ic_30.toFixed(4)  : '—'}</td>
+      <td>${w.ic_90  != null ? w.ic_90.toFixed(4)  : '—'}</td>
+      <td>${w.sharpe_90 != null ? w.sharpe_90.toFixed(3) : '—'}</td>
+      <td><button class="apply-btn" onclick="applyWeights(${i})">Apply</button></td>
+    </tr>`;
+  });
+}
+
+// ── Apply weights to admin settings ───────────────────────────────────────────
+function applyWeights(idx) {
+  if (!_results || !_results.top_weights[idx]) return;
+  const w = _results.top_weights[idx];
+  const status = document.getElementById('apply-status');
+  fetch('/api/admin/settings', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ settings: {
+      reco_w_momentum:    w.w_momentum,
+      reco_w_fundamental: w.w_fundamental,
+      reco_w_valuation:   w.w_valuation,
+      reco_w_guru:        w.w_guru,
+      reco_w_analyst:     w.w_analyst,
+      reco_w_sentiment:   w.w_sentiment,
+    }}),
+  }).then(r => r.json()).then(res => {
+    status.style.color = res.ok ? '#34d399' : '#f87171';
+    status.textContent = res.ok
+      ? `✓ Applied #${idx+1} weights — recommendation cache cleared. Visit /admin/settings to review.`
+      : 'Failed to apply weights';
+    setTimeout(() => { status.textContent = ''; }, 5000);
+  });
+}
+
+// ── Polling & run control ──────────────────────────────────────────────────────
+function pollStatus() {
+  fetch('/api/backtest/status').then(r => r.json()).then(s => {
+    if (!s.has_run) { document.getElementById('no-run-msg').style.display = 'block'; return; }
+
+    _runId = s.run_id;
+    const btn = document.getElementById('run-btn');
+    const pw  = document.getElementById('progress-wrap');
+    const pf  = document.getElementById('progress-fill');
+    const pl  = document.getElementById('progress-label');
+
+    if (s.status === 'running' || s.running) {
+      btn.disabled = true; btn.textContent = '⏳ Running…';
+      pw.classList.add('visible');
+      const pct = s.snap_total > 0 ? s.snap_done / s.snap_total * 100 : 0;
+      pf.style.width = pct + '%';
+      pl.textContent = `Processing snapshot ${s.snap_done} / ${s.snap_total}…`;
+      _pollTimer = setTimeout(pollStatus, 3000);
+    } else {
+      btn.disabled = false; btn.textContent = '▶ Run Backtest';
+      if (s.status === 'done') {
+        pw.classList.remove('visible');
+        fetch(`/api/backtest/results/${s.run_id}`).then(r => r.json()).then(renderResults);
+      } else if (s.status === 'error') {
+        pw.classList.remove('visible');
+        pl.textContent = '❌ Error: ' + (s.error_msg || 'unknown');
+        pw.classList.add('visible');
+      }
+    }
+  });
+}
+
+document.getElementById('run-btn').addEventListener('click', () => {
+  clearTimeout(_pollTimer);
+  fetch('/api/backtest/run', { method: 'POST' })
+    .then(r => r.json())
+    .then(res => {
+      if (!res.ok) { alert(res.error || 'Could not start backtest'); return; }
+      _runId = res.run_id;
+      document.getElementById('run-btn').disabled = true;
+      document.getElementById('run-btn').textContent = '⏳ Running…';
+      document.getElementById('progress-wrap').classList.add('visible');
+      setTimeout(pollStatus, 2000);
+    });
+});
+
+pollStatus();
+</script>
+</body>
+</html>
