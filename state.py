@@ -36,5 +36,8 @@ _s_group_order: list = []
 _GURU_SHORT: dict = {}
 _GURU_COLOR: dict = {}
 
+# ── Fundamentals backfill status ─────────────────────────────────────────────
+_fund_backfill_status: dict = {"state": "idle", "done": 0, "total": 0, "msg": ""}
+
 # ── Admin settings (DB-backed overrides, keyed by setting key_name) ──────────
 settings: dict = {}         # raw string values; use get_setting() to read

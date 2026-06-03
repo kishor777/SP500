@@ -352,6 +352,11 @@ def _price_refresh_loop():
                 _vol_trade_sell(_td)
                 state._vol_trade_sell_date = _td
 
+            # Daily fundamentals refresh (runs once per day at first refresh)
+            if not hasattr(state, '_fund_update_date') or state._fund_update_date != _td:
+                _fundamentals_daily_update()
+                state._fund_update_date = _td
+
         except Exception as _ex:
             state._last_refresh["status"] = "error"
             print(f"[refresh] error: {_ex}")
@@ -361,6 +366,249 @@ def _delayed_backfill():
     time.sleep(10)
     _intraday_backfill()
     _history_backfill_2y()
+    _fundamentals_backfill()
+
+
+# ── Historical fundamentals backfill ──────────────────────────────────────────
+
+def _safe_row(df, *names):
+    """Find the first matching row in a DataFrame by trying multiple field names."""
+    if df is None or df.empty:
+        return None
+    for n in names:
+        if n in df.index:
+            return df.loc[n]
+    return None
+
+
+def _safe_int(series, col):
+    if series is None:
+        return None
+    try:
+        v = series.get(col) if hasattr(series, 'get') else (series[col] if col in series.index else None)
+        return int(v) if v is not None and not pd.isna(v) else None
+    except Exception:
+        return None
+
+
+def _fetch_ticker_fundamentals(ticker: str, years: int = 2) -> tuple[list, list]:
+    """Return (fundamental_rows, analyst_rows) for a single ticker."""
+    import yfinance as yf
+    from datetime import timedelta
+
+    cutoff = (_date.today() - timedelta(days=365 * years)).isoformat()
+    t = yf.Ticker(ticker, session=_yf_session())
+
+    fund_rows = []
+    try:
+        fin = t.quarterly_financials
+        bal = t.quarterly_balance_sheet
+
+        if fin is not None and not fin.empty:
+            revenue_s   = _safe_row(fin, 'Total Revenue', 'TotalRevenue')
+            gross_s     = _safe_row(fin, 'Gross Profit', 'GrossProfit')
+            op_s        = _safe_row(fin, 'Operating Income', 'OperatingIncome', 'EBIT',
+                                    'Total Operating Income As Reported')
+            ni_s        = _safe_row(fin, 'Net Income', 'NetIncome',
+                                    'Net Income Common Stockholders',
+                                    'Net Income From Continuing Operation Net Minority Interest')
+            ebitda_s    = _safe_row(fin, 'EBITDA', 'Normalized EBITDA')
+            equity_s    = _safe_row(bal, 'Stockholders Equity', 'Common Stock Equity',
+                                    'Total Stockholder Equity') if bal is not None else None
+            assets_s    = _safe_row(bal, 'Total Assets', 'TotalAssets') if bal is not None else None
+            debt_s      = _safe_row(bal, 'Total Debt', 'TotalDebt',
+                                    'Long Term Debt') if bal is not None else None
+
+            cols = list(fin.columns)
+            for col in cols:
+                period_date = pd.Timestamp(col).date().isoformat()
+                if period_date < cutoff:
+                    continue
+
+                rev  = _safe_int(revenue_s,  col)
+                gp   = _safe_int(gross_s,    col)
+                oi   = _safe_int(op_s,       col)
+                ni   = _safe_int(ni_s,       col)
+                eb   = _safe_int(ebitda_s,   col)
+                bv   = _safe_int(equity_s,   col)
+                ta   = _safe_int(assets_s,   col)
+                td   = _safe_int(debt_s,     col)
+
+                gm   = round(gp / rev, 4) if gp is not None and rev else None
+                om   = round(oi / rev, 4) if oi is not None and rev else None
+                nm   = round(ni / rev, 4) if ni is not None and rev else None
+
+                # YoY growth vs same quarter 1 year ago
+                yoy_col = None
+                pd_date = pd.Timestamp(col).date()
+                for c in cols:
+                    diff = (pd_date - pd.Timestamp(c).date()).days
+                    if 340 < diff < 395:
+                        yoy_col = c
+                        break
+
+                rev_growth = earn_growth = None
+                if yoy_col:
+                    rev_y  = _safe_int(revenue_s, yoy_col)
+                    ni_y   = _safe_int(ni_s,      yoy_col)
+                    if rev and rev_y and rev_y != 0:
+                        rev_growth  = round((rev - rev_y) / abs(rev_y), 4)
+                    if ni is not None and ni_y is not None and ni_y != 0:
+                        earn_growth = round((ni - ni_y) / abs(ni_y), 4)
+
+                # ROE: TTM net income / avg book value (approximated with single period)
+                roe = None
+                if ni is not None and bv and bv != 0:
+                    # Annualise quarterly net income × 4 / book value
+                    roe = round((ni * 4) / abs(bv), 4)
+
+                fund_rows.append({
+                    "ticker": ticker, "period_date": period_date,
+                    "total_revenue": rev, "gross_profit": gp,
+                    "operating_income": oi, "net_income": ni, "ebitda": eb,
+                    "gross_margin": gm, "operating_margin": om, "net_margin": nm,
+                    "revenue_growth": rev_growth, "earnings_growth": earn_growth,
+                    "book_value": bv, "total_assets": ta, "total_debt": td, "roe": roe,
+                })
+    except Exception as e:
+        print(f"[fund] {ticker} fundamentals error: {e}")
+
+    analyst_rows = []
+    try:
+        recs = t.recommendations
+        if recs is not None and not recs.empty:
+            recs = recs.reset_index()
+            date_col = recs.columns[0]
+            for _, row in recs.iterrows():
+                try:
+                    rec_date = pd.Timestamp(row[date_col]).date().isoformat()
+                    if rec_date < cutoff:
+                        continue
+                    analyst_rows.append({
+                        "ticker":   ticker,
+                        "rec_date": rec_date,
+                        "firm":     str(row.get("Firm", row.get("firm", "")))[:200],
+                        "rec_to":   str(row.get("To Grade", row.get("toGrade", "")))[:100],
+                        "rec_from": str(row.get("From Grade", row.get("fromGrade", "")))[:100],
+                        "action":   str(row.get("Action", row.get("action", "")))[:50],
+                    })
+                except Exception:
+                    pass
+    except Exception as e:
+        print(f"[fund] {ticker} analyst error: {e}")
+
+    return fund_rows, analyst_rows
+
+
+def _fundamentals_backfill():
+    """One-time download of 2-year quarterly fundamentals for all S&P 500 tickers."""
+    from sqlalchemy import text as _t
+
+    engine = get_engine()
+    try:
+        with engine.connect() as conn:
+            count = conn.execute(_t(
+                "SELECT COUNT(DISTINCT ticker) FROM sp500_fundamentals"
+            )).scalar()
+        if count and count > 400:
+            state._fund_backfill_status.update({"state": "done", "msg": f"Already have {count} tickers"})
+            print(f"[fund-backfill] Already have {count} tickers — skipping")
+            return
+    except Exception as e:
+        print(f"[fund-backfill] Pre-check failed ({e}), proceeding")
+
+    tickers = [str(t) for t in state.df.index]
+    total   = len(tickers)
+    state._fund_backfill_status.update({"state": "running", "done": 0, "total": total,
+                                        "msg": f"0/{total} tickers"})
+    print(f"[fund-backfill] Starting 2-year backfill for {total} tickers…")
+
+    INSERT_FUND = _t("""
+        INSERT INTO sp500_fundamentals
+          (ticker, period_date, total_revenue, gross_profit, operating_income,
+           net_income, ebitda, gross_margin, operating_margin, net_margin,
+           revenue_growth, earnings_growth, book_value, total_assets, total_debt, roe)
+        VALUES
+          (:ticker, :period_date, :total_revenue, :gross_profit, :operating_income,
+           :net_income, :ebitda, :gross_margin, :operating_margin, :net_margin,
+           :revenue_growth, :earnings_growth, :book_value, :total_assets, :total_debt, :roe)
+        ON DUPLICATE KEY UPDATE
+          gross_margin=VALUES(gross_margin), operating_margin=VALUES(operating_margin),
+          net_margin=VALUES(net_margin), revenue_growth=VALUES(revenue_growth),
+          earnings_growth=VALUES(earnings_growth), roe=VALUES(roe),
+          total_revenue=VALUES(total_revenue), net_income=VALUES(net_income),
+          book_value=VALUES(book_value), fetched_at=NOW()
+    """)
+    INSERT_REC = _t("""
+        INSERT INTO sp500_analyst_recs (ticker, rec_date, firm, rec_to, rec_from, action)
+        VALUES (:ticker, :rec_date, :firm, :rec_to, :rec_from, :action)
+    """)
+
+    for i, ticker in enumerate(tickers, 1):
+        try:
+            fund_rows, analyst_rows = _fetch_ticker_fundamentals(ticker, years=2)
+            with engine.connect() as conn:
+                if fund_rows:
+                    conn.execute(INSERT_FUND, fund_rows)
+                if analyst_rows:
+                    conn.execute(INSERT_REC, analyst_rows)
+                conn.commit()
+        except Exception as e:
+            print(f"[fund-backfill] {ticker}: {e}")
+        state._fund_backfill_status.update({"done": i, "msg": f"{i}/{total} tickers"})
+        if i % 50 == 0:
+            print(f"[fund-backfill] {i}/{total} tickers done")
+        time.sleep(0.6)
+
+    state._fund_backfill_status.update({"state": "done", "msg": f"Complete — {total} tickers"})
+    print("[fund-backfill] Complete")
+
+
+def _fundamentals_daily_update():
+    """Fetch new quarterly data for tickers whose latest period is > 85 days old."""
+    from sqlalchemy import text as _t
+
+    engine = get_engine()
+    try:
+        with engine.connect() as conn:
+            stale = conn.execute(_t("""
+                SELECT ticker FROM (
+                    SELECT ticker, MAX(period_date) AS latest
+                    FROM sp500_fundamentals GROUP BY ticker
+                ) t WHERE latest < DATE_SUB(CURDATE(), INTERVAL 85 DAY)
+            """)).fetchall()
+        tickers_to_update = [r.ticker for r in stale]
+        if not tickers_to_update:
+            return
+        print(f"[fund-update] Refreshing {len(tickers_to_update)} stale tickers")
+        for ticker in tickers_to_update:
+            try:
+                fund_rows, _ = _fetch_ticker_fundamentals(ticker, years=1)
+                if fund_rows:
+                    with engine.connect() as conn:
+                        conn.execute(_t("""
+                            INSERT INTO sp500_fundamentals
+                              (ticker, period_date, total_revenue, gross_profit, operating_income,
+                               net_income, ebitda, gross_margin, operating_margin, net_margin,
+                               revenue_growth, earnings_growth, book_value, total_assets,
+                               total_debt, roe)
+                            VALUES
+                              (:ticker, :period_date, :total_revenue, :gross_profit, :operating_income,
+                               :net_income, :ebitda, :gross_margin, :operating_margin, :net_margin,
+                               :revenue_growth, :earnings_growth, :book_value, :total_assets,
+                               :total_debt, :roe)
+                            ON DUPLICATE KEY UPDATE
+                              gross_margin=VALUES(gross_margin), net_income=VALUES(net_income),
+                              revenue_growth=VALUES(revenue_growth), roe=VALUES(roe),
+                              fetched_at=NOW()
+                        """), fund_rows)
+                        conn.commit()
+            except Exception as e:
+                print(f"[fund-update] {ticker}: {e}")
+            time.sleep(0.5)
+        print(f"[fund-update] Done — refreshed {len(tickers_to_update)} tickers")
+    except Exception as e:
+        print(f"[fund-update] error: {e}")
 
 
 # ── Thread startup ─────────────────────────────────────────────────────────────

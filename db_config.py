@@ -246,6 +246,51 @@ def create_sentiment_table():
         conn.commit()
 
 
+def create_fundamentals_tables():
+    """Tables for point-in-time quarterly fundamentals and analyst recommendations."""
+    engine = get_engine()
+    with engine.connect() as conn:
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS sp500_fundamentals (
+                id               INT AUTO_INCREMENT PRIMARY KEY,
+                ticker           VARCHAR(20) NOT NULL,
+                period_date      DATE NOT NULL,
+                total_revenue    BIGINT,
+                gross_profit     BIGINT,
+                operating_income BIGINT,
+                net_income       BIGINT,
+                ebitda           BIGINT,
+                gross_margin     FLOAT,
+                operating_margin FLOAT,
+                net_margin       FLOAT,
+                revenue_growth   FLOAT,
+                earnings_growth  FLOAT,
+                book_value       BIGINT,
+                total_assets     BIGINT,
+                total_debt       BIGINT,
+                roe              FLOAT,
+                fetched_at       DATETIME DEFAULT CURRENT_TIMESTAMP
+                                 ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY uq_ticker_period (ticker, period_date),
+                INDEX idx_ticker  (ticker),
+                INDEX idx_date    (period_date)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS sp500_analyst_recs (
+                id          INT AUTO_INCREMENT PRIMARY KEY,
+                ticker      VARCHAR(20) NOT NULL,
+                rec_date    DATE NOT NULL,
+                firm        VARCHAR(200),
+                rec_to      VARCHAR(100),
+                rec_from    VARCHAR(100),
+                action      VARCHAR(50),
+                INDEX idx_ticker_date (ticker, rec_date)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """))
+        conn.commit()
+
+
 def create_backtest_tables():
     """Create tables for backtesting the recommendation engine."""
     engine = get_engine()

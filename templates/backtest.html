@@ -102,6 +102,14 @@
 </header>
 
 <div id="page-wrap">
+  <!-- Data status -->
+  <div id="data-status-bar" style="background:#1a1d27;border:1px solid #2d3148;border-radius:8px;padding:11px 18px;margin-bottom:14px;display:flex;gap:20px;flex-wrap:wrap;align-items:center;font-size:0.78rem;">
+    <span style="color:#64748b;font-size:0.72rem;text-transform:uppercase;letter-spacing:.05em">Data Coverage</span>
+    <span id="ds-fund" style="color:#64748b">Quarterly Fundamentals: loading…</span>
+    <span id="ds-analyst" style="color:#64748b">Analyst History: loading…</span>
+    <span id="ds-backfill" style="color:#64748b"></span>
+  </div>
+
   <!-- Run panel -->
   <div id="run-panel">
     <div id="run-info">
@@ -369,6 +377,30 @@ document.getElementById('run-btn').addEventListener('click', () => {
       setTimeout(pollStatus, 2000);
     });
 });
+
+function loadDataStatus() {
+  fetch('/api/backtest/data-status').then(r=>r.json()).then(s => {
+    const fc = s.fund_tickers, ac = s.analyst_tickers;
+    const fCol = fc > 400 ? '#34d399' : fc > 100 ? '#fbbf24' : '#f87171';
+    const aCol = ac > 400 ? '#34d399' : ac > 100 ? '#fbbf24' : '#f87171';
+    document.getElementById('ds-fund').innerHTML =
+      `Quarterly Fundamentals: <b style="color:${fCol}">${fc} tickers</b>${s.latest_period ? ` · latest ${s.latest_period}` : ''}`;
+    document.getElementById('ds-analyst').innerHTML =
+      `Analyst History: <b style="color:${aCol}">${ac} tickers</b>`;
+    const bf = document.getElementById('ds-backfill');
+    if (s.backfill_state === 'running') {
+      bf.style.color = '#fbbf24';
+      bf.textContent = `⏳ Backfill running… ${s.backfill_pct}% (${s.backfill_msg})`;
+      setTimeout(loadDataStatus, 8000);
+    } else if (fc < 100) {
+      bf.style.color = '#fb923c';
+      bf.textContent = '⚠ Fundamental data not yet loaded — backfill starts automatically at next server restart.';
+    } else {
+      bf.textContent = '';
+    }
+  });
+}
+loadDataStatus();
 
 pollStatus();
 </script>

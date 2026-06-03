@@ -22,7 +22,8 @@ from db_config import (get_engine, create_guru_tables, create_guru_rules_table,
                        create_screener_filters_table, create_vol_trades_table,
                        create_sentiment_table, create_sp500_history_table,
                        create_portfolio_table, migrate_portfolio_table,
-                       create_admin_settings_table, create_backtest_tables)
+                       create_admin_settings_table, create_backtest_tables,
+                       create_fundamentals_tables)
 from helpers import load_admin_settings
 from config import GURUS, SCREENER_NUM_GROUPS
 
@@ -64,6 +65,7 @@ try:
     migrate_portfolio_table()
     create_admin_settings_table()
     create_backtest_tables()
+    create_fundamentals_tables()
 except Exception as _e:
     print(f"Could not create/migrate tables: {_e}")
 

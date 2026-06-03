@@ -89,9 +89,83 @@ def _run_backtest(run_id: int):
         tickers = [str(t) for t in state.df.index
                    if state.hist_by_ticker.get(str(t))]
 
-        # ── Pre-compute proxy fundamental / valuation / analyst scores ──────────
-        # (today's values used as historical proxy — documented caveat)
-        def _col_rank(col_name, invert=False):
+        # ── Check if point-in-time fundamentals are available ───────────────────
+        with engine.connect() as conn:
+            fund_count = conn.execute(_t(
+                "SELECT COUNT(DISTINCT ticker) FROM sp500_fundamentals"
+            )).scalar() or 0
+            analyst_count = conn.execute(_t(
+                "SELECT COUNT(DISTINCT ticker) FROM sp500_analyst_recs"
+            )).scalar() or 0
+
+        has_fundamentals = fund_count > 100
+        has_analyst_hist = analyst_count > 100
+        print(f"[backtest] Fundamentals: {fund_count} tickers, "
+              f"Analyst history: {analyst_count} tickers")
+
+        # ── Pre-load all fundamentals and analyst recs into memory ────────────
+        all_fund_data: dict = {}   # {ticker: [(period_date, row_dict), ...] sorted asc}
+        all_analyst_data: dict = {}  # {ticker: [(rec_date, score), ...] sorted asc}
+
+        if has_fundamentals:
+            with engine.connect() as conn:
+                fund_rows_db = conn.execute(_t("""
+                    SELECT ticker, period_date, gross_margin, operating_margin,
+                           net_margin, revenue_growth, earnings_growth, roe,
+                           net_income, book_value, total_revenue
+                    FROM sp500_fundamentals ORDER BY ticker, period_date
+                """)).fetchall()
+            for r in fund_rows_db:
+                all_fund_data.setdefault(r.ticker, []).append((str(r.period_date), r))
+
+        if has_analyst_hist:
+            with engine.connect() as conn:
+                rec_rows_db = conn.execute(_t("""
+                    SELECT ticker, rec_date, rec_to FROM sp500_analyst_recs
+                    ORDER BY ticker, rec_date
+                """)).fetchall()
+            score_map = {"strong buy": 100, "buy": 80, "overweight": 80,
+                         "outperform": 75, "hold": 50, "neutral": 50,
+                         "equal-weight": 50, "underperform": 25, "underweight": 25,
+                         "sell": 5}
+            for r in rec_rows_db:
+                sc = score_map.get((r.rec_to or "").lower().strip(), 50)
+                all_analyst_data.setdefault(r.ticker, []).append((str(r.rec_date), sc))
+
+        def _fund_at_date(ticker, snap_date_str):
+            """Get the most recent fundamentals row for ticker at or before snap_date."""
+            entries = all_fund_data.get(ticker)
+            if not entries:
+                return None
+            # Binary search for latest entry <= snap_date_str
+            lo, hi = 0, len(entries) - 1
+            result = None
+            while lo <= hi:
+                mid = (lo + hi) // 2
+                if entries[mid][0] <= snap_date_str:
+                    result = entries[mid][1]
+                    lo = mid + 1
+                else:
+                    hi = mid - 1
+            return result
+
+        def _analyst_at_date(ticker, snap_date_str):
+            """Get consensus analyst score for ticker at snap_date."""
+            entries = all_analyst_data.get(ticker)
+            if not entries:
+                return None
+            # Find all entries <= snap_date (most recent per firm is impractical
+            # without firm tracking; use the latest single entry as proxy)
+            result = None
+            for d, sc in entries:
+                if d <= snap_date_str:
+                    result = sc
+                else:
+                    break
+            return result
+
+        # ── Proxy fundamental / valuation / analyst scores (fallback only) ────
+        def _col_rank_proxy(col_name):
             vals = {}
             for tk in tickers:
                 if tk not in state.df.index:
@@ -105,12 +179,9 @@ def _run_backtest(run_id: int):
             if not vals:
                 return {tk: 50.0 for tk in tickers}
             ranked = _pct_rank(vals)
-            if invert:
-                ranked = {k: 100 - v for k, v in ranked.items()}
             return {tk: ranked.get(tk, 50.0) for tk in tickers}
 
-        # Quality: blend of fundamental fields
-        qual_raw = {}
+        qual_raw_proxy = {}
         for tk in tickers:
             s = 0.0
             tot = 0.0
@@ -118,45 +189,35 @@ def _run_backtest(run_id: int):
                 try:
                     v = state.df.at[tk, col] if tk in state.df.index else None
                     if v is not None and not (isinstance(v, float) and math.isnan(v)):
-                        s += float(v) * w
-                        tot += w
+                        s += float(v) * w; tot += w
                 except Exception:
                     pass
             if tot > 0:
-                qual_raw[tk] = s / tot
-        f_scores_proxy = {tk: _pct_rank(qual_raw).get(tk, 50.0) for tk in tickers}
+                qual_raw_proxy[tk] = s / tot
+        f_scores_proxy = {tk: _pct_rank(qual_raw_proxy).get(tk, 50.0) for tk in tickers}
 
-        # Valuation: blend of valuation fields (inverted — lower = better)
-        val_raw = {}
+        val_raw_proxy = {}
         for tk in tickers:
-            s = 0.0
-            tot = 0.0
+            s = 0.0; tot = 0.0
             for col, w in RECO_VALUATION_FIELDS.items():
                 try:
                     v = state.df.at[tk, col] if tk in state.df.index else None
                     if v is not None and not (isinstance(v, float) and math.isnan(v)) and float(v) > 0:
-                        s += float(v) * w
-                        tot += w
+                        s += float(v) * w; tot += w
                 except Exception:
                     pass
             if tot > 0:
-                val_raw[tk] = s / tot
-        v_scores_proxy = {}
-        if val_raw:
-            tmp = _pct_rank(val_raw)
-            v_scores_proxy = {tk: 100 - tmp.get(tk, 50.0) for tk in tickers}  # invert
-        else:
-            v_scores_proxy = {tk: 50.0 for tk in tickers}
+                val_raw_proxy[tk] = s / tot
+        tmp = _pct_rank(val_raw_proxy)
+        v_scores_proxy = {tk: 100 - tmp.get(tk, 50.0) for tk in tickers}  # invert
 
-        # Analyst score
-        a_raw = {}
+        a_scores_proxy = {}
         for tk in tickers:
             try:
                 key = str(state.df.at[tk, "recommendationKey"] if tk in state.df.index else "")
-                a_raw[tk] = RECO_ANALYST_SCORE_MAP.get(key.lower(), 50)
+                a_scores_proxy[tk] = float(RECO_ANALYST_SCORE_MAP.get(key.lower(), 50))
             except Exception:
-                a_raw[tk] = 50.0
-        a_scores_proxy = {tk: float(a_raw.get(tk, 50.0)) for tk in tickers}
+                a_scores_proxy[tk] = 50.0
 
         # ── Pre-load guru holdings ─────────────────────────────────────────────
         with engine.connect() as conn:
@@ -271,17 +332,91 @@ def _run_backtest(run_id: int):
                 if row_ret:
                     fwd[tk] = row_ret
 
+            # ── Point-in-time Quality & Valuation from quarterly fundamentals ──
+            if has_fundamentals:
+                fund_pit: dict = {}   # {tk: row}
+                for tk in tickers:
+                    r = _fund_at_date(tk, snap_date_str)
+                    if r:
+                        fund_pit[tk] = r
+
+                # Build quality composite score at snap_date
+                q_raw_snap: dict = {}
+                for tk, r in fund_pit.items():
+                    vals_q = [
+                        (getattr(r, 'gross_margin',    None), 0.20),
+                        (getattr(r, 'operating_margin', None), 0.20),
+                        (getattr(r, 'net_margin',      None), 0.30),
+                        (getattr(r, 'revenue_growth',  None), 0.15),
+                        (getattr(r, 'earnings_growth', None), 0.15),
+                    ]
+                    s, tot = 0.0, 0.0
+                    for v, w in vals_q:
+                        if v is not None and not (isinstance(v, float) and math.isnan(v)):
+                            s += float(v) * w; tot += w
+                    if tot > 0:
+                        q_raw_snap[tk] = s / tot
+                f_scores_snap = {tk: _pct_rank(q_raw_snap).get(tk, f_scores_proxy.get(tk, 50.0))
+                                 for tk in tickers}
+
+                # Historical P/E for valuation (price_at_D / annualised_EPS_at_D)
+                pe_raw_snap: dict = {}
+                for tk in tickers:
+                    r = _fund_at_date(tk, snap_date_str)
+                    if not r:
+                        continue
+                    ni  = getattr(r, 'net_income', None)
+                    rev = getattr(r, 'total_revenue', None)
+                    bv  = getattr(r, 'book_value', None)
+                    hist = state.hist_by_ticker.get(tk) or []
+                    if not hist:
+                        continue
+                    times_h = [h["time"] for h in hist]
+                    price_d = _price_on_or_before(hist, times_h, snap_date_str)
+                    if price_d and ni and ni > 0:
+                        # shares_outstanding from sp500_info (proxy — current value)
+                        try:
+                            sh = float(state.df.at[tk, "sharesOutstanding"]) if tk in state.df.index else None
+                            if sh and sh > 0:
+                                eps_annualised = (ni * 4) / sh
+                                pe = price_d / eps_annualised if eps_annualised > 0 else None
+                                if pe:
+                                    pe_raw_snap[tk] = pe
+                        except Exception:
+                            pass
+
+                if pe_raw_snap:
+                    tmp_v = _pct_rank(pe_raw_snap)
+                    v_scores_snap = {tk: 100 - tmp_v.get(tk, 50.0) for tk in tickers}  # invert
+                else:
+                    v_scores_snap = v_scores_proxy
+            else:
+                f_scores_snap = f_scores_proxy
+                v_scores_snap = v_scores_proxy
+
+            # ── Point-in-time analyst consensus ──────────────────────────────
+            if has_analyst_hist:
+                a_raw_snap: dict = {}
+                for tk in tickers:
+                    sc = _analyst_at_date(tk, snap_date_str)
+                    if sc is not None:
+                        a_raw_snap[tk] = sc
+                a_scores_snap = {tk: float(a_raw_snap.get(tk, a_scores_proxy.get(tk, 50.0)))
+                                 for tk in tickers}
+            else:
+                a_scores_snap = a_scores_proxy
+
             # ── Assemble rows ─────────────────────────────────────────────────
             batch = []
             for tk in tickers:
                 if tk not in fwd:
                     continue
-                ms = m_scores.get(tk, 50.0)
-                fs = f_scores_proxy.get(tk, 50.0)
-                vs = v_scores_proxy.get(tk, 50.0)
-                gs = g_scores.get(tk, 50.0)
-                a_s = a_scores_proxy.get(tk, 50.0)
-                ss = s_scores.get(tk, 50.0)
+                ms  = m_scores.get(tk, 50.0)
+                fs  = f_scores_snap.get(tk, 50.0)
+                vs  = v_scores_snap.get(tk, 50.0)
+                gs  = g_scores.get(tk, 50.0)
+                a_s = a_scores_snap.get(tk, 50.0)
+                ss  = s_scores.get(tk, 50.0)
                 score = (ms * W_curr["momentum"]    +
                          fs * W_curr["fundamental"] +
                          vs * W_curr["valuation"]   +
@@ -426,6 +561,31 @@ def _run_backtest(run_id: int):
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
+
+@bp.get("/api/backtest/data-status")
+@require_auth
+def backtest_data_status():
+    engine = get_engine()
+    with engine.connect() as conn:
+        fund_count = conn.execute(_t(
+            "SELECT COUNT(DISTINCT ticker) FROM sp500_fundamentals"
+        )).scalar() or 0
+        analyst_count = conn.execute(_t(
+            "SELECT COUNT(DISTINCT ticker) FROM sp500_analyst_recs"
+        )).scalar() or 0
+        latest_fund = conn.execute(_t(
+            "SELECT MAX(period_date) FROM sp500_fundamentals"
+        )).scalar()
+    return jsonify({
+        "fund_tickers":   int(fund_count),
+        "analyst_tickers": int(analyst_count),
+        "latest_period":  str(latest_fund) if latest_fund else None,
+        "backfill_state": state._fund_backfill_status.get("state", "idle"),
+        "backfill_msg":   state._fund_backfill_status.get("msg", ""),
+        "backfill_pct":   round(state._fund_backfill_status.get("done", 0) /
+                                max(state._fund_backfill_status.get("total", 1), 1) * 100),
+    })
+
 
 @bp.get("/backtest")
 @require_auth
