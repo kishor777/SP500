@@ -335,3 +335,5 @@ OK implement a import button to accept holdings-report-2026-06-02.csv and map it
 OK Good import did work - Few problem though. Claude Rec dont work in dev environment or in railway. Price is not live for today. Notes column should be editable in table. Add Column if stock belongs to US or Canada after Company - It shall be based on if Market Price is in USD or CAD.
 
 Value in the Market column is wrong - It shall be based on corresponding value in Market Price Column in CSV files. Value Can be either US or CA.
+
+I have Key Still Logs shows - Error as shows with details. ANTHROPIC_API_KEY not configured.

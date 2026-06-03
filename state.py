@@ -35,3 +35,6 @@ _s_group_order: list = []
 # ── Guru display helpers (populated at startup) ───────────────────────────────
 _GURU_SHORT: dict = {}
 _GURU_COLOR: dict = {}
+
+# ── Admin settings (DB-backed overrides, keyed by setting key_name) ──────────
+settings: dict = {}         # raw string values; use get_setting() to read

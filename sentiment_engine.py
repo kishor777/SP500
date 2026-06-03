@@ -26,6 +26,7 @@ from config import (
     REDDIT_CLIENT_ID,
     REDDIT_CLIENT_SECRET,
 )
+from helpers import get_setting
 
 # ── FinBERT (lazy-loaded on first use, thread-safe) ───────────────────────────
 
@@ -87,7 +88,7 @@ def _fetch_stocktwits(ticker: str) -> list[dict]:
         print(f"[sentiment] StockTwits {ticker}: {type(e).__name__}: {e} — Yahoo RSS fallback")
         return _fetch_yahoo_rss(ticker)
 
-    cutoff = datetime.now(timezone.utc) - timedelta(days=SENTIMENT_LOOKBACK_DAYS)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=get_setting('sent_lookback', SENTIMENT_LOOKBACK_DAYS))
     seen, posts = set(), []
     for m in messages:
         try:
@@ -101,7 +102,7 @@ def _fetch_stocktwits(ticker: str) -> list[dict]:
             continue
         seen.add(mid)
         body = (m.get("body") or "").strip()
-        if len(body) < SENTIMENT_MIN_POST_LEN:
+        if len(body) < get_setting('sent_min_post_len', SENTIMENT_MIN_POST_LEN):
             continue
         if re.fullmatch(r'[\$#@\w\s]+', body) and len(body.split()) <= 3:
             continue
@@ -123,7 +124,7 @@ def _fetch_yahoo_rss(ticker: str) -> list[dict]:
             print(f"[sentiment] Yahoo RSS {ticker}: HTTP {r.status_code}, body empty")
             return []
         root = ET.fromstring(r.text)
-        cutoff = datetime.now(timezone.utc) - timedelta(days=SENTIMENT_LOOKBACK_DAYS)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=get_setting('sent_lookback', SENTIMENT_LOOKBACK_DAYS))
         posts = []
         for item in root.iter("item"):
             title = (item.findtext("title") or "").strip()
@@ -137,7 +138,7 @@ def _fetch_yahoo_rss(ticker: str) -> list[dict]:
             except Exception:
                 pass
             text = (title + ". " + desc).strip()
-            if len(text) < SENTIMENT_MIN_POST_LEN:
+            if len(text) < get_setting('sent_min_post_len', SENTIMENT_MIN_POST_LEN):
                 continue
             uid = hashlib.md5(text.encode()).hexdigest()
             posts.append({"id": uid, "text": text[:512], "source": "yahoo_rss"})
@@ -175,7 +176,7 @@ def _fetch_reddit(ticker: str) -> list[dict]:
     if reddit is None:
         return []
 
-    cutoff = time.time() - (SENTIMENT_LOOKBACK_DAYS * 86400)
+    cutoff = time.time() - (get_setting('sent_lookback', SENTIMENT_LOOKBACK_DAYS) * 86400)
     seen, posts = set(), []
 
     for sub_name in SENTIMENT_SUBREDDITS:
@@ -189,7 +190,7 @@ def _fetch_reddit(ticker: str) -> list[dict]:
                     continue
                 seen.add(post.id)
                 text = (post.title + " " + (post.selftext or ""))[:512].strip()
-                if len(text) < SENTIMENT_MIN_POST_LEN:
+                if len(text) < get_setting('sent_min_post_len', SENTIMENT_MIN_POST_LEN):
                     continue
                 posts.append({"id": post.id, "text": text, "source": "reddit"})
         except Exception as e:
@@ -353,8 +354,8 @@ def compute_ticker_sentiment(ticker: str, engine) -> dict:
     vol_score = _volume_spike_score(len(st_posts) + len(rd_posts))
 
     # Combined raw score (only from sources that have data)
-    sources = [(st_score, SENTIMENT_STOCKTWITS_WEIGHT)] if st_score is not None else []
-    sources += [(rd_score, SENTIMENT_REDDIT_WEIGHT)]     if rd_score is not None else []
+    sources = [(st_score, get_setting('sent_w_stocktwits', SENTIMENT_STOCKTWITS_WEIGHT))] if st_score is not None else []
+    sources += [(rd_score, get_setting('sent_w_reddit', SENTIMENT_REDDIT_WEIGHT))]     if rd_score is not None else []
     if sources:
         total_w    = sum(w for _, w in sources)
         combined   = sum(s * w for s, w in sources) / total_w
@@ -371,13 +372,13 @@ def compute_ticker_sentiment(ticker: str, engine) -> dict:
     else:
         # Composite weighted by configured sub-weights; normalize for missing sources
         parts = {
-            "vol": (vol_score, SENTIMENT_VOLUME_WEIGHT),
-            "mom": (mom_score, SENTIMENT_MOMENTUM_WEIGHT),
+            "vol": (vol_score, get_setting('sent_w_volume', SENTIMENT_VOLUME_WEIGHT)),
+            "mom": (mom_score, get_setting('sent_w_momentum', SENTIMENT_MOMENTUM_WEIGHT)),
         }
         if st_score is not None:
-            parts["st"] = (st_score, SENTIMENT_STOCKTWITS_WEIGHT)
+            parts["st"] = (st_score, get_setting('sent_w_stocktwits', SENTIMENT_STOCKTWITS_WEIGHT))
         if rd_score is not None:
-            parts["rd"] = (rd_score, SENTIMENT_REDDIT_WEIGHT)
+            parts["rd"] = (rd_score, get_setting('sent_w_reddit', SENTIMENT_REDDIT_WEIGHT))
 
         total_w = sum(w for _, w in parts.values())
         final   = sum(s * w for s, w in parts.values()) / total_w if total_w else 50.0
@@ -406,7 +407,7 @@ def should_run_sentiment(existing_scores: dict, engine) -> bool:
     if not existing_scores:
         return True                           # no data today at all → run
     now_et = datetime.now(_NYSE_TZ)
-    if now_et.hour < SENTIMENT_REFRESH_HOUR:
+    if now_et.hour < get_setting('sent_refresh_hour', SENTIMENT_REFRESH_HOUR):
         return False                          # before noon, skip second run
     # After noon: check whether we already ran post-noon today
     from sqlalchemy import text as _t
@@ -416,7 +417,7 @@ def should_run_sentiment(existing_scores: dict, engine) -> bool:
                 SELECT COUNT(*) AS cnt FROM sentiment_scores
                 WHERE score_date = CURDATE()
                   AND HOUR(computed_at) >= :hr
-            """), {"hr": SENTIMENT_REFRESH_HOUR}).fetchone()
+            """), {"hr": get_setting('sent_refresh_hour', SENTIMENT_REFRESH_HOUR)}).fetchone()
         return row.cnt == 0                   # True = no post-noon run yet
     except Exception:
         return False

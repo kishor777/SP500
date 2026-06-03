@@ -21,7 +21,9 @@ from db_config import (get_engine, create_guru_tables, create_guru_rules_table,
                        migrate_guru_tables, create_intraday_table,
                        create_screener_filters_table, create_vol_trades_table,
                        create_sentiment_table, create_sp500_history_table,
-                       create_portfolio_table, migrate_portfolio_table)
+                       create_portfolio_table, migrate_portfolio_table,
+                       create_admin_settings_table)
+from helpers import load_admin_settings
 from config import GURUS, SCREENER_NUM_GROUPS
 
 from blueprints.admin           import bp as admin_bp
@@ -30,6 +32,7 @@ from blueprints.screener        import bp as screener_bp
 from blueprints.guru            import bp as guru_bp
 from blueprints.recommendations import bp as recommendations_bp
 from blueprints.portfolio       import bp as portfolio_bp
+from blueprints.admin_settings  import bp as admin_settings_bp
 
 # ── App factory ───────────────────────────────────────────────────────────────
 app = Flask(__name__)
@@ -44,6 +47,7 @@ app.register_blueprint(screener_bp)
 app.register_blueprint(guru_bp)
 app.register_blueprint(recommendations_bp)
 app.register_blueprint(portfolio_bp)
+app.register_blueprint(admin_settings_bp)
 
 # ── Startup: tables → data → state → workers ──────────────────────────────────
 try:
@@ -56,6 +60,7 @@ try:
     create_sentiment_table()
     create_portfolio_table()
     migrate_portfolio_table()
+    create_admin_settings_table()
 except Exception as _e:
     print(f"Could not create/migrate tables: {_e}")
 
@@ -85,6 +90,10 @@ try:
             GURUS[_slug]["rules"] = _rules
 except Exception as _e:
     print(f"Could not initialize guru rules DB: {_e}")
+
+# Load DB-backed settings into state before workers start
+state.settings = load_admin_settings()
+print(f"[startup] Admin settings: {len(state.settings)} override(s) loaded from DB")
 
 # Diagnostic: confirm ANTHROPIC_API_KEY is loaded
 _ak = os.environ.get("ANTHROPIC_API_KEY", "")

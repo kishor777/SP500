@@ -4,7 +4,7 @@ import pandas as pd
 from datetime import datetime as _dt, date as _date
 
 import state
-from helpers import _market_is_open, _yf_session, _save_intraday_bars, load_history
+from helpers import _market_is_open, _yf_session, _save_intraday_bars, load_history, get_setting
 from db_config import get_engine
 from config import SCHEDULER_CONFIG, _NYSE_TZ
 
@@ -215,14 +215,14 @@ def _vol_trade_buy(today_str: str):
     candidates = []
     for ticker in list(state.df.index):
         ticker = str(ticker)
-        if quality_map.get(ticker, 0) < 70:
+        if quality_map.get(ticker, 0) < get_setting("vol_trade_quality_min", 70):
             continue
         vol_1m = vol_1m_map.get(ticker)
         im = intra_map.get(ticker, {})
         vol_today = im.get("vol_today")
         live = im.get("last_close")
         expected = vol_1m * prorate if vol_1m else None
-        if not (vol_today and expected and vol_today > 2 * expected and live):
+        if not (vol_today and expected and vol_today > get_setting("vol_trade_vol_ratio_min", 2.0) * expected and live):
             continue
         prev_close = prev_close_map.get(ticker)
         d1 = (live - prev_close) / prev_close * 100 if live and prev_close else None
@@ -241,8 +241,9 @@ def _vol_trade_buy(today_str: str):
         for c in top3:
             conn.execute(_t("""
                 INSERT INTO vol_trades (trade_date, ticker, buy_time, buy_price, amount_usd, status)
-                VALUES (:d, :tk, :bt, :bp, 1000, 'open')
-            """), {"d": today_str, "tk": c["ticker"], "bt": buy_time, "bp": c["buy_price"]})
+                VALUES (:d, :tk, :bt, :bp, :amt, 'open')
+            """), {"d": today_str, "tk": c["ticker"], "bt": buy_time, "bp": c["buy_price"],
+                   "amt": get_setting("vol_trade_amount_usd", 1000)})
         conn.commit()
     print(f"[vol-trades] bought {[c['ticker'] for c in top3]} @ {buy_time.strftime('%H:%M ET')}")
 
@@ -299,7 +300,7 @@ def _price_refresh_loop():
     import yfinance as yf
 
     while True:
-        time.sleep(SCHEDULER_CONFIG["refresh_interval_sec"])
+        time.sleep(get_setting("refresh_interval_sec", SCHEDULER_CONFIG["refresh_interval_sec"]))
         if not _market_is_open():
             state._last_refresh["status"] = "closed"
             print(f"[refresh] market closed — skipping ({_dt.now(_NYSE_TZ).strftime('%H:%M ET')})")
@@ -340,8 +341,10 @@ def _price_refresh_loop():
             _td = _date.today().isoformat()
             _now_et = _dt.now(_NYSE_TZ)
             _now_min  = _now_et.hour * 60 + _now_et.minute
-            _buy_min  = SCHEDULER_CONFIG["vol_trade_buy_hour"]  * 60 + SCHEDULER_CONFIG["vol_trade_buy_minute"]
-            _sell_min = SCHEDULER_CONFIG["vol_trade_sell_hour"] * 60 + SCHEDULER_CONFIG["vol_trade_sell_minute"]
+            _buy_min  = get_setting("vol_trade_buy_hour",    SCHEDULER_CONFIG["vol_trade_buy_hour"])   * 60 \
+                      + get_setting("vol_trade_buy_minute",  SCHEDULER_CONFIG["vol_trade_buy_minute"])
+            _sell_min = get_setting("vol_trade_sell_hour",   SCHEDULER_CONFIG["vol_trade_sell_hour"])  * 60 \
+                      + get_setting("vol_trade_sell_minute", SCHEDULER_CONFIG["vol_trade_sell_minute"])
             if _now_min >= _buy_min and state._vol_trade_buy_date != _td:
                 _vol_trade_buy(_td)
                 state._vol_trade_buy_date = _td

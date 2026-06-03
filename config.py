@@ -46,6 +46,53 @@ SCHEDULER_CONFIG = {
     "hist_backfill_days":      730,   # 2 years of daily history to back-fill
 }
 
+# ── Admin Settings Schema ─────────────────────────────────────────────────────
+# Single source of truth for every DB-backed setting.
+# Each entry: key (DB key_name), label, type (int|float|str), default, and
+# optional unit/hint strings shown in the admin UI.
+
+SETTINGS_SCHEMA: dict[str, list[dict]] = {
+    "Scheduler": [
+        {"key": "refresh_interval_sec",  "label": "Price Refresh Interval", "type": "int",   "default": 300,  "unit": "sec",     "hint": "How often live prices are fetched during market hours"},
+        {"key": "vol_trade_buy_hour",    "label": "Vol Trade Buy Hour (ET)", "type": "int",   "default": 9,    "unit": "hour"},
+        {"key": "vol_trade_buy_minute",  "label": "Vol Trade Buy Minute",    "type": "int",   "default": 50,   "unit": "min"},
+        {"key": "vol_trade_sell_hour",   "label": "Vol Trade Sell Hour (ET)","type": "int",   "default": 15,   "unit": "hour"},
+        {"key": "vol_trade_sell_minute", "label": "Vol Trade Sell Minute",   "type": "int",   "default": 55,   "unit": "min"},
+    ],
+    "Vol Trade Strategy": [
+        {"key": "vol_trade_quality_min",  "label": "Min Quality Score",   "type": "int",   "default": 70,   "unit": "0–100", "hint": "Fundamental quality percentile threshold — stocks below this are skipped"},
+        {"key": "vol_trade_vol_ratio_min","label": "Min Volume Ratio",    "type": "float", "default": 2.0,  "unit": "×",     "hint": "Minimum today_vol ÷ expected_vol to qualify as abnormal"},
+        {"key": "vol_trade_amount_usd",   "label": "Trade Amount",        "type": "int",   "default": 1000, "unit": "USD",   "hint": "Dollar amount invested per paper trade"},
+    ],
+    "Recommendation Engine — Signal Weights": [
+        {"key": "reco_w_momentum",    "label": "Momentum",   "type": "float", "default": 0.15, "hint": "3M/6M/1Y price return blend"},
+        {"key": "reco_w_fundamental", "label": "Quality",    "type": "float", "default": 0.25, "hint": "ROE, margins, revenue growth"},
+        {"key": "reco_w_valuation",   "label": "Valuation",  "type": "float", "default": 0.15, "hint": "P/E, P/B, EV/EBITDA (inverted)"},
+        {"key": "reco_w_guru",        "label": "Guru",       "type": "float", "default": 0.15, "hint": "13F conviction score"},
+        {"key": "reco_w_analyst",     "label": "Analyst",    "type": "float", "default": 0.15, "hint": "Yahoo Finance recommendation"},
+        {"key": "reco_w_sentiment",   "label": "Sentiment",  "type": "float", "default": 0.15, "hint": "StockTwits + Reddit FinBERT"},
+    ],
+    "Recommendation Engine — Label Thresholds": [
+        {"key": "reco_thr_strong_buy", "label": "Strong Buy ≥",   "type": "int", "default": 68, "unit": "score"},
+        {"key": "reco_thr_buy",        "label": "Buy ≥",          "type": "int", "default": 57, "unit": "score"},
+        {"key": "reco_thr_hold",       "label": "Hold ≥",         "type": "int", "default": 44, "unit": "score"},
+        {"key": "reco_thr_under",      "label": "Underperform ≥", "type": "int", "default": 32, "unit": "score"},
+    ],
+    "Sentiment Engine": [
+        {"key": "sent_w_stocktwits", "label": "StockTwits Weight",    "type": "float", "default": 0.40},
+        {"key": "sent_w_reddit",     "label": "Reddit Weight",        "type": "float", "default": 0.30},
+        {"key": "sent_w_volume",     "label": "Volume Spike Weight",  "type": "float", "default": 0.20},
+        {"key": "sent_w_momentum",   "label": "Sentiment Momentum",   "type": "float", "default": 0.10},
+        {"key": "sent_lookback",     "label": "Lookback Days",        "type": "int",   "default": 3,    "unit": "days", "hint": "Only posts from the last N days are scored"},
+        {"key": "sent_refresh_hour", "label": "Daily Refresh Hour",   "type": "int",   "default": 12,   "unit": "ET",   "hint": "Allow a second daily sentiment run after this hour"},
+    ],
+    "Cache / TTL": [
+        {"key": "ttl_reco",  "label": "Recommendations TTL", "type": "int", "default": 3600,  "unit": "sec", "hint": "Recompute recommendation scores after this interval"},
+        {"key": "ttl_guru",  "label": "Guru Holdings TTL",   "type": "int", "default": 86400, "unit": "sec", "hint": "Re-fetch 13F guru data after this interval"},
+        {"key": "ttl_optim", "label": "Optimised Rules TTL", "type": "int", "default": 3600,  "unit": "sec"},
+    ],
+}
+
 # ── TTL / Cache Timeouts ──────────────────────────────────────────────────────
 
 _DB_GURU_TTL    = 86400  # seconds before DB guru cache is considered stale (24h)

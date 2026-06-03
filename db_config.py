@@ -246,6 +246,21 @@ def create_sentiment_table():
         conn.commit()
 
 
+def create_admin_settings_table():
+    """Create admin_settings key-value store for dynamic config overrides."""
+    engine = get_engine()
+    with engine.connect() as conn:
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS admin_settings (
+                key_name   VARCHAR(100) NOT NULL PRIMARY KEY,
+                value      TEXT         NOT NULL,
+                updated_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
+                           ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """))
+        conn.commit()
+
+
 def migrate_portfolio_table():
     """Add claude_rec columns to portfolio_holdings if not already present."""
     engine = get_engine()

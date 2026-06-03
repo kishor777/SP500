@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin Settings</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+  header { background: #1a1d27; border-bottom: 1px solid #2d3148; padding: 12px 24px; display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 1.25rem; font-weight: 700; color: #f8fafc; }
+  .breadcrumb { font-size: 0.8rem; color: #475569; }
+  .breadcrumb a { color: #818cf8; text-decoration: none; }
+  .breadcrumb a:hover { text-decoration: underline; }
+
+  #page-wrap { max-width: 900px; margin: 0 auto; padding: 24px 20px; }
+
+  /* Section cards */
+  .section-card { background: #1a1d27; border: 1px solid #2d3148; border-radius: 10px; margin-bottom: 18px; overflow: hidden; }
+  .section-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid #2d3148; background: #131620; }
+  .section-title { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #818cf8; }
+  .section-actions { display: flex; gap: 8px; }
+  .btn-reset { background: none; border: 1px solid #2d3148; color: #64748b; padding: 4px 12px; border-radius: 5px; font-size: 0.72rem; cursor: pointer; }
+  .btn-reset:hover { border-color: #f87171; color: #f87171; }
+  .btn-save  { background: #3730a3; border: none; color: #fff; padding: 4px 14px; border-radius: 5px; font-size: 0.72rem; cursor: pointer; font-weight: 600; }
+  .btn-save:hover { background: #4338ca; }
+  .btn-save:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* Settings grid */
+  .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  @media (max-width: 640px) { .settings-grid { grid-template-columns: 1fr; } }
+  .setting-row { display: flex; align-items: center; gap: 12px; padding: 11px 18px; border-bottom: 1px solid #1e2235; }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-row:nth-child(odd) { border-right: 1px solid #1e2235; }
+  .setting-label-wrap { flex: 1; min-width: 0; }
+  .setting-label { font-size: 0.82rem; color: #e2e8f0; font-weight: 500; }
+  .setting-hint  { font-size: 0.68rem; color: #475569; margin-top: 2px; line-height: 1.4; }
+  .setting-input-wrap { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .setting-input { background: #0f1117; border: 1px solid #2d3148; color: #e2e8f0; padding: 5px 8px; border-radius: 5px; font-size: 0.82rem; width: 90px; text-align: right; outline: none; font-variant-numeric: tabular-nums; }
+  .setting-input:focus { border-color: #6366f1; }
+  .setting-input.modified { border-color: #f59e0b; }
+  .setting-unit  { font-size: 0.68rem; color: #475569; white-space: nowrap; min-width: 28px; }
+  .mod-dot { width: 6px; height: 6px; border-radius: 50%; background: #f59e0b; flex-shrink: 0; }
+  .mod-dot.hidden { visibility: hidden; }
+
+  /* Save status */
+  #save-status { font-size: 0.78rem; margin-top: 10px; text-align: right; height: 20px; }
+  #save-status.ok  { color: #34d399; }
+  #save-status.err { color: #f87171; }
+
+  /* Global save bar */
+  #global-bar { position: sticky; bottom: 0; background: #1a1d27; border-top: 1px solid #2d3148; padding: 12px 20px; display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
+  #save-all-btn { background: #059669; border: none; color: #fff; padding: 8px 24px; border-radius: 7px; font-size: 0.84rem; cursor: pointer; font-weight: 700; }
+  #save-all-btn:hover { background: #047857; }
+  #global-status { font-size: 0.78rem; color: #64748b; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="breadcrumb"><a href="/">S&amp;P 500</a> › Admin › Settings</div>
+    <h1>Admin Settings</h1>
+  </div>
+</header>
+
+<div id="page-wrap">
+  <div id="sections-wrap"></div>
+  <div id="save-status"></div>
+</div>
+
+<div id="global-bar">
+  <span id="global-status">Loading…</span>
+  <button id="save-all-btn">Save All Changes</button>
+</div>
+
+<script>
+let _schema = [];   // flat list of all fields with current/default
+
+function fmt(val, type) {
+  if (type === 'float') return parseFloat(val).toFixed(type === 'float' && val < 1 ? 2 : 1);
+  return String(val);
+}
+
+function buildSections(data) {
+  _schema = [];
+  data.sections.forEach(s => _schema.push(...s.fields));
+
+  const wrap = document.getElementById('sections-wrap');
+  wrap.innerHTML = '';
+  data.sections.forEach(sec => {
+    const card = document.createElement('div');
+    card.className = 'section-card';
+    card.dataset.section = sec.name;
+
+    const keys = sec.fields.map(f => f.key);
+    card.innerHTML = `
+      <div class="section-header">
+        <span class="section-title">${sec.name}</span>
+        <div class="section-actions">
+          <button class="btn-reset" onclick="resetSection('${sec.name}', ${JSON.stringify(keys)})">↺ Reset to defaults</button>
+          <button class="btn-save" onclick="saveSection('${sec.name}')">Save</button>
+        </div>
+      </div>
+      <div class="settings-grid" id="grid-${CSS.escape(sec.name)}"></div>`;
+
+    const grid = card.querySelector('.settings-grid');
+    sec.fields.forEach(f => {
+      const row = document.createElement('div');
+      row.className = 'setting-row';
+      row.dataset.key = f.key;
+      const hint = f.hint ? `<div class="setting-hint">${f.hint}</div>` : '';
+      const unit = f.unit ? `<span class="setting-unit">${f.unit}</span>` : '<span class="setting-unit"></span>';
+      row.innerHTML = `
+        <div class="setting-label-wrap">
+          <div class="setting-label">${f.label}</div>${hint}
+          <div style="font-size:0.65rem;color:#334155;margin-top:3px">default: ${f.default}</div>
+        </div>
+        <div class="setting-input-wrap">
+          <div class="mod-dot ${f.modified ? '' : 'hidden'}" title="Modified from default"></div>
+          <input class="setting-input ${f.modified ? 'modified' : ''}"
+                 type="number" step="${f.type === 'float' ? '0.01' : '1'}"
+                 data-key="${f.key}" data-default="${f.default}" data-type="${f.type}"
+                 value="${f.current}">
+          ${unit}
+        </div>`;
+      grid.appendChild(row);
+    });
+
+    wrap.appendChild(card);
+  });
+
+  // Wire up change detection
+  document.querySelectorAll('.setting-input').forEach(inp => {
+    inp.addEventListener('input', () => markModified(inp));
+  });
+
+  updateGlobalStatus();
+}
+
+function markModified(inp) {
+  const isModified = String(inp.value) !== String(inp.dataset.default);
+  inp.classList.toggle('modified', isModified);
+  const dot = inp.closest('.setting-row').querySelector('.mod-dot');
+  dot.classList.toggle('hidden', !isModified);
+  updateGlobalStatus();
+}
+
+function updateGlobalStatus() {
+  const modCount = document.querySelectorAll('.setting-input.modified').length;
+  document.getElementById('global-status').textContent =
+    modCount ? `${modCount} unsaved change${modCount > 1 ? 's' : ''}` : 'All settings saved';
+}
+
+function collectSection(sectionName) {
+  const card = document.querySelector(`[data-section="${sectionName}"]`);
+  const result = {};
+  card.querySelectorAll('.setting-input').forEach(inp => {
+    result[inp.dataset.key] = inp.value;
+  });
+  return result;
+}
+
+function saveSection(sectionName) {
+  const settings = collectSection(sectionName);
+  doSave(settings);
+}
+
+function saveAll() {
+  const settings = {};
+  document.querySelectorAll('.setting-input').forEach(inp => {
+    settings[inp.dataset.key] = inp.value;
+  });
+  doSave(settings);
+}
+
+function doSave(settings) {
+  const statusEl = document.getElementById('save-status');
+  document.getElementById('save-all-btn').disabled = true;
+  fetch('/api/admin/settings', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({settings}),
+  }).then(r => r.json()).then(res => {
+    document.getElementById('save-all-btn').disabled = false;
+    if (res.ok) {
+      statusEl.className = 'ok';
+      statusEl.textContent = `✓ Saved ${res.saved} setting${res.saved !== 1 ? 's' : ''}`;
+      // Update defaults display & clear modified state for saved keys
+      Object.keys(settings).forEach(key => {
+        const inp = document.querySelector(`.setting-input[data-key="${key}"]`);
+        if (inp) { inp.classList.remove('modified'); inp.closest('.setting-row').querySelector('.mod-dot').classList.add('hidden'); }
+      });
+      updateGlobalStatus();
+      setTimeout(() => { statusEl.textContent = ''; }, 3000);
+    } else {
+      statusEl.className = 'err';
+      statusEl.textContent = 'Save failed';
+    }
+  }).catch(() => {
+    document.getElementById('save-all-btn').disabled = false;
+    document.getElementById('save-status').className = 'err';
+    document.getElementById('save-status').textContent = 'Request failed';
+  });
+}
+
+function resetSection(sectionName, keys) {
+  if (!confirm(`Reset "${sectionName}" to defaults?`)) return;
+  fetch('/api/admin/settings/reset', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({keys}),
+  }).then(r => r.json()).then(res => {
+    if (res.ok) {
+      // Restore input values to defaults
+      keys.forEach(key => {
+        const f = _schema.find(x => x.key === key);
+        const inp = document.querySelector(`.setting-input[data-key="${key}"]`);
+        if (f && inp) { inp.value = f.default; markModified(inp); }
+      });
+    }
+  });
+}
+
+document.getElementById('save-all-btn').addEventListener('click', saveAll);
+
+// Load settings
+fetch('/api/admin/settings').then(r => r.json()).then(buildSections)
+  .catch(() => { document.getElementById('global-status').textContent = 'Failed to load settings'; });
+</script>
+</body>
+</html>

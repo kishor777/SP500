@@ -11,7 +11,42 @@ from zoneinfo import ZoneInfo
 
 import state
 from db_config import get_engine
+from sqlalchemy import text as _text
 from config import _NYSE_TZ, _NYSE_HOLIDAYS, SCREENER_NUM_GROUPS, SCREENER_CAT_FIELDS
+
+# ── Admin settings ────────────────────────────────────────────────────────────
+def get_setting(key: str, default=None):
+    """Read from DB-backed state.settings, cast to the same type as default."""
+    raw = state.settings.get(key)
+    if raw is None:
+        return default
+    if default is None:
+        return raw
+    try:
+        if isinstance(default, bool):
+            return str(raw).lower() in ("true", "1", "yes")
+        if isinstance(default, int):
+            return int(float(raw))
+        if isinstance(default, float):
+            return float(raw)
+        return str(raw)
+    except (ValueError, TypeError):
+        return default
+
+
+def load_admin_settings() -> dict:
+    """Load all rows from admin_settings into a {key: raw_value_str} dict."""
+    try:
+        engine = get_engine()
+        with engine.connect() as conn:
+            rows = conn.execute(
+                _text("SELECT key_name, value FROM admin_settings")
+            ).fetchall()
+        return {r.key_name: r.value for r in rows}
+    except Exception as e:
+        print(f"[settings] Could not load admin settings ({e}) — using defaults")
+        return {}
+
 
 # ── Scalar helpers ─────────────────────────────────────────────────────────────
 def clean(val):

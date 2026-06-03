@@ -4,7 +4,7 @@ from datetime import date as _date
 from flask import Blueprint, jsonify, render_template
 
 import state
-from helpers import clean, _price_changes
+from helpers import clean, _price_changes, get_setting
 from extensions import limiter, require_auth
 from db_config import get_engine
 from sentiment_engine import load_all_scores, run_sentiment_pass, should_run_sentiment, sentiment_status
@@ -142,13 +142,30 @@ def _compute_recommendations() -> list:
     ).reindex(state.df.index, fill_value=50.0)
     scores["sentiment"] = sent_series
 
-    # Composite
-    W = RECO_SIGNAL_WEIGHTS
+    # Composite — use DB-backed weights when set, fall back to config defaults
+    W = {
+        "momentum":    get_setting("reco_w_momentum",    RECO_SIGNAL_WEIGHTS["momentum"]),
+        "fundamental": get_setting("reco_w_fundamental", RECO_SIGNAL_WEIGHTS["fundamental"]),
+        "valuation":   get_setting("reco_w_valuation",   RECO_SIGNAL_WEIGHTS["valuation"]),
+        "guru":        get_setting("reco_w_guru",        RECO_SIGNAL_WEIGHTS["guru"]),
+        "analyst":     get_setting("reco_w_analyst",     RECO_SIGNAL_WEIGHTS["analyst"]),
+        "sentiment":   get_setting("reco_w_sentiment",   RECO_SIGNAL_WEIGHTS["sentiment"]),
+    }
+    total_w = sum(W.values()) or 1
+    W = {k: v / total_w for k, v in W.items()}   # auto-normalise
     scores["score"] = sum(scores[k].fillna(50) * w for k, w in W.items())
     scores["score"] = scores["score"].round(1)
 
+    thresholds = [
+        (get_setting("reco_thr_strong_buy", 68), "Strong Buy"),
+        (get_setting("reco_thr_buy",        57), "Buy"),
+        (get_setting("reco_thr_hold",       44), "Hold"),
+        (get_setting("reco_thr_under",      32), "Underperform"),
+        (0,                                       "Sell"),
+    ]
+
     def _label(s):
-        return next(lbl for thr, lbl in RECO_LABEL_THRESHOLDS if s >= thr)
+        return next(lbl for thr, lbl in thresholds if s >= thr)
 
     keep = ["longName", "sector", "currentPrice", "marketCap",
             "returnOnEquity", "grossMargins", "trailingPE",
@@ -196,7 +213,7 @@ def _compute_recommendations() -> list:
 
 
 def _get_recommendations() -> list:
-    if time.time() - state._reco_cache["ts"] > _RECO_TTL or not state._reco_cache["data"]:
+    if time.time() - state._reco_cache["ts"] > get_setting("ttl_reco", _RECO_TTL) or not state._reco_cache["data"]:
         print("[reco] Computing recommendation scores…")
         state._reco_cache["data"] = _compute_recommendations()
         state._reco_cache["ts"]   = time.time()
